@@ -8,6 +8,7 @@
 [![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-black?logo=next.js)](https://nextjs.org/)
 [![Database: PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-blue?logo=postgresql)](https://www.postgresql.org/)
 [![Auth: Better Auth](https://img.shields.io/badge/Auth-Better%20Auth-purple)](https://betterauth.io/)
+[![100% Free](https://img.shields.io/badge/100%25-Free-brightgreen)](https://github.com/kumneger0/TGCloud)
 
 **TGCloud is a cloud storage solution that provides unlimited storage by leveraging Telegram's API.**
 
@@ -19,7 +20,8 @@ TGCloud offers a simple, secure, and free way to store and manage files. Built w
 
 ### 💡 Why TGCloud?
 
-- **No Storage Limits**: Unlike traditional cloud storage services with tiered payment plans, TGCloud leverages Telegram's unlimited storage capabilities.
+- **Completely Free**: Unlike traditional cloud storage services with tiered payment plans, TGCloud is 100% free with no hidden costs or premium tiers.
+- **No Storage Limits**: Leverage Telegram's unlimited storage capabilities without restrictions on file size or total storage used.
 - **Privacy-Focused**: Your files are stored in private Telegram channels accessible only to you.
 - **Simple & Fast**: Modern interface designed for easy file management with quick uploads and downloads.
 - **Open Source**: Fully transparent codebase you can inspect, modify, and contribute to.
