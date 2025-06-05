@@ -30,11 +30,9 @@ TGCloud offers a simple, secure, and free way to store and manage files. Built w
 
 - **Unlimited Storage**: Store as many files as you need—TGCloud utilizes Telegram's channel storage without restrictions.
 - **Secure and Private**: Each user has a unique, private Telegram channel, ensuring their files are only accessible to them.
-- **Telegram Integration**: Sign in securely with your Telegram account to access or upload files.
 - **File Organization**: Create folders and organize your files with a familiar interface.
 - **File Sharing**: Generate temporary links to share files with others.
 - **File Preview**: View images, videos, and documents directly in the browser.
-- **Cross-Platform**: Access your files from any device with a web browser.
 
 ## 🛠 How It Works
 
@@ -96,19 +94,12 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ## 🖥 Technologies Used
 
-- **Frontend**: 
   - Next.js
-  - React
   - Tailwind CSS
-  - Radix UI
-
-- **Backend**:
-  - Node.js
+  - Shadcn UI
   - Drizzle ORM
   - PostgreSQL
   - Better Auth
-
-- **Storage**:
   - Telegram API
   - Dexie (for client-side caching)
 
