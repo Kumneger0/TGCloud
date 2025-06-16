@@ -31,7 +31,6 @@ export const UploadFiles = ({
 }) => {
 	const router = useRouter();
 	const [dropedfiles, setFiles] = useState<DropedFile[]>([]);
-	const [uploadProgress, setUploadProgress] = useState<UploadProgress>();
 	const tgCloudContext = getGlobalTGCloudContext();
 	const searchParams = useSearchParams();
 	const folderId = searchParams?.get('folderId') ?? null;
@@ -47,14 +46,23 @@ export const UploadFiles = ({
 	const handleSubmit = async (formData: FormData) => {
 		if (tgCloudContext?.botRateLimit.isRateLimited) return null;
 		const client = await getTgClient({ setBotRateLimit: tgCloudContext?.setBotRateLimit });
+		type UploadProgresFnType = NonNullable<(typeof tgCloudContext)>['setUploadProgress']
+
+		const setUploadProgressFn: UploadProgresFnType = (progress) => {
+			console.log(progress)
+		}
+
 		await promiseToast({
-			cb: () => uploadFiles(formData, user, setUploadProgress, client, folderId),
+			cb: () => {
+				setOpen(false);
+				return uploadFiles(formData, user, tgCloudContext?.setUploadProgress || setUploadProgressFn, client, folderId);
+			},
 			errMsg: 'We apologize, but there was an error uploading your files',
 			successMsg: 'File Uploaded',
-			loadingMsg: 'please wait...',
+			loadingMsg: 'please wait',
 			position: 'top-right'
 		});
-		setOpen(false);
+		tgCloudContext?.setUploadProgress?.(undefined)
 		setFiles([]);
 		router.refresh();
 	};
@@ -63,9 +71,9 @@ export const UploadFiles = ({
 
 	return (
 		<>
-			{uploadProgress && (
-				<UploadProgressOverlay progress={{ ...uploadProgress, total: dropedfiles.length }} />
-			)}
+			<div className="bg-red-500 text-white p-4 rounded-md">
+				<p>Please do not close the site or refresh the page while uploading files.</p>
+			</div>
 			<div className="grid gap-6 max-w-xl overflow-x-hidden mx-auto">
 				<form
 					action={async () => {
@@ -81,9 +89,8 @@ export const UploadFiles = ({
 						{({ getRootProps, getInputProps, isDragActive }) => (
 							<div
 								{...getRootProps()}
-								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${
-									isDragActive ? 'border-primary' : 'border-primary-foreground'
-								}`}
+								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${isDragActive ? 'border-primary' : 'border-primary-foreground'
+									}`}
 							>
 								<CloudUploadIcon className="w-10 h-10 text-primary" />
 								<h3 className="text-2xl font-bold">Upload Files</h3>
@@ -100,7 +107,7 @@ export const UploadFiles = ({
 					</Dropzone>
 					<div className="grid gap-4">
 						<div className="grid grid-cols-[1fr_auto] items-center gap-4">
-							<h4 className="text-lg font-medium">Uploaded Files</h4>
+							<h4 className="text-lg font-medium">Selected Files</h4>
 							<button type="button" className="outline-button" onClick={() => setFiles([])}>
 								<span className="flex justify-center items-center">
 									<TrashIcon className="w-4 h-4 mr-2" />

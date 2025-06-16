@@ -6,13 +6,13 @@ import { ReadonlyURLSearchParams } from 'next/navigation';
 import { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
-import { Api, TelegramClient } from 'telegram';
+import { Api, client, TelegramClient } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError, TypeNotFoundError } from 'telegram/errors';
 import { ChannelDetails, User } from './types';
 
 export type MediaSize = 'large' | 'small';
-export type MediaCategory = 'video' | 'image' | 'document';
+export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
 
 interface DownloadMediaOptions {
 	user: NonNullable<User>;
@@ -168,15 +168,16 @@ export async function uploadFiles(
 	onProgress: Dispatch<
 		SetStateAction<
 			| {
-					itemName: string;
-					itemIndex: number;
-					progress: number;
-			  }
+				itemName: string;
+				itemIndex: number;
+				progress: number;
+				total: number
+			}
 			| undefined
 		>
 	>,
 	client: TelegramClient | undefined,
-	folderId: string | null
+	folderId: string | null,
 ) {
 	if (!client) {
 		throw new Error('Failed to initialize Telegram client');
@@ -195,7 +196,8 @@ export async function uploadFiles(
 					onProgress({
 						itemName: file.name,
 						itemIndex: index,
-						progress: progress
+						progress: progress,
+						total: files.length
 					});
 				}
 			});
@@ -418,7 +420,7 @@ export const downloadMedia = async (
 
 	try {
 		if (category === 'video')
-			return await handleVideoDownload(client, media as Message['media'], async (chunk) => {});
+			return await handleVideoDownload(client, media as Message['media'], async (chunk) => { });
 		if (media)
 			return await handleMediaDownload(
 				client,
@@ -484,14 +486,54 @@ export const downloadVideoThumbnail = async (
 	media: Message['media']
 ) => {
 	const thumbnail = media.document.thumbs;
-
 	if (!thumbnail) return;
 
 	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
 		thumb: 1
 	});
-
 	if (!buffer) return;
-
 	return buffer;
 };
+
+
+export async function generateVideoThumbnail(client: TelegramClient, media: Message['media']) {
+	const buffers = [];
+	for await (const buffer of client.iterDownload({
+		file: media as unknown as Api.TypeMessageMedia,
+		requestSize: 1 * 1024 * 1024
+	})) {
+		buffers.push(buffer);
+		break;
+	}
+
+	const blob = new Blob(buffers, { type: 'video/mp4' });
+	const video = document.createElement('video');
+	video.src = URL.createObjectURL(blob);
+	video.crossOrigin = 'anonymous';
+	video.preload = 'metadata';
+	video.muted = true;
+	video.playsInline = true;
+
+	await new Promise(resolve => {
+		video.onloadedmetadata = () => {
+			video.currentTime = Math.min(1, video.duration / 2);
+			resolve(void 0);
+		};
+	});
+
+	await new Promise(resolve => {
+		video.onseeked = () => resolve(void 0);
+	});
+
+
+	const canvas = document.createElement('canvas');
+	const ctx = canvas.getContext('2d');
+
+	canvas.width = video.videoWidth;
+	canvas.height = video.videoHeight;
+
+	ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+	const thumbnail = canvas.toDataURL('image/jpeg', 0.9);
+	return thumbnail;
+}	

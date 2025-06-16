@@ -1,19 +1,11 @@
-import { XIcon } from './Icons/icons';
+'use client'
+import { getGlobalTGCloudContext } from '@/lib/context';
 import { Progress } from './ui/progress';
-
-interface UploadProgress {
-	itemName: string;
-	itemIndex: number;
-	progress: number;
-	total: number;
-}
-
-interface UploadProgressOverlayProps {
-	progress: UploadProgress;
-	onClose?: () => void;
-}
-
-export function UploadProgressOverlay({ progress, onClose }: UploadProgressOverlayProps) {
+export function UploadProgressOverlay() {
+	const tgCloudContext = getGlobalTGCloudContext()
+	if (!tgCloudContext) return null;
+	const progress = tgCloudContext.uploadProgress;
+	if (!progress) return null;
 	const progressPercentage = Math.round(progress.progress * 100);
 
 	return (
@@ -21,15 +13,7 @@ export function UploadProgressOverlay({ progress, onClose }: UploadProgressOverl
 			<div className="bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-4 min-w-[320px]">
 				<div className="flex justify-between items-center mb-4">
 					<h3 className="font-semibold">Uploading Files</h3>
-					{onClose && (
-						<button
-							onClick={onClose}
-							className="text-muted-foreground hover:text-foreground transition-colors"
-						>
-							<XIcon className="w-4 h-4" />
-							<span className="sr-only">Close</span>
-						</button>
-					)}
+
 				</div>
 
 				<div className="space-y-3">

@@ -1,9 +1,11 @@
 'use client';
-import { AppProgressBar as ProgressBar } from 'next-nprogress-bar';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 import React, { Dispatch, SetStateAction, useState, useTransition } from 'react';
 import { env } from '../env';
+import { FileItem } from './types';
+import { ProgressProvider } from '@bprogress/next/app';
+
 
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -19,8 +21,14 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
 const Providers = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<>
-			{children}
-			<ProgressBar height="4px" color="#c21333" options={{ showSpinner: true }} shallowRouting />
+			<ProgressProvider
+				height="4px"
+				color="#fffd00"
+				options={{ showSpinner: false }}
+				shallowRouting
+			>
+				{children}
+			</ProgressProvider>
 		</>
 	);
 };
@@ -28,37 +36,53 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
 export default Providers;
 
 type SortBy = 'name' | 'size' | 'type' | 'date';
-type connectionState = 'connected' | 'disconnected' | 'connecting' | 'reconnecting';
+
+interface UploadProgress {
+	itemName: string;
+	itemIndex: number;
+	progress: number;
+	total: number;
+}
+
+export interface MiniPlayerAudio {
+	fileData: FileItem;
+	blobURL: string;
+	isPlaying: boolean;
+	progress: number;
+	duration: number;
+	currentTime: number;
+	isMinimized: boolean;
+	fileTelegramId: string;
+}
 
 export const TGCloudGlobalContext = React.createContext<
 	| {
-			sortBy: SortBy;
-			setSortBy: Dispatch<SetStateAction<SortBy>>;
-			connectionStatus: connectionState;
-			setConnectionStatus: Dispatch<SetStateAction<connectionState>>;
-			shouldShowUploadModal: boolean;
-			setShouldShowUploadModal: Dispatch<SetStateAction<boolean>>;
-			isSwitchingFolder: boolean;
-			startPathSwitching: React.TransitionStartFunction;
-			botRateLimit: {
+		sortBy: SortBy;
+		setSortBy: Dispatch<SetStateAction<SortBy>>;
+		isSwitchingFolder: boolean;
+		startPathSwitching: React.TransitionStartFunction;
+		uploadProgress: UploadProgress | undefined;
+		setUploadProgress: Dispatch<SetStateAction<UploadProgress | undefined>>;
+		botRateLimit: {
+			isRateLimited: boolean;
+			retryAfter: number;
+		};
+		setBotRateLimit: React.Dispatch<
+			React.SetStateAction<{
 				isRateLimited: boolean;
 				retryAfter: number;
-			};
-			setBotRateLimit: React.Dispatch<
-				React.SetStateAction<{
-					isRateLimited: boolean;
-					retryAfter: number;
-				}>
-			>;
-	  }
+			}>
+		>;
+		miniPlayerAudio: MiniPlayerAudio | null;
+		setMiniPlayerAudio: Dispatch<SetStateAction<MiniPlayerAudio | null>>;
+	}
 	| undefined
 >(undefined);
 
 export const TGCloudGlobalContextWrapper = ({ children }: { children: React.ReactNode }) => {
 	const [sortBy, setSortBy] = useState<SortBy>('name');
-	const [connectionStatus, setConnectionStatus] = useState<connectionState>('disconnected');
-	const [shouldShowUploadModal, setShouldShowUploadModal] = useState<boolean>(false);
 	const [isSwitchingFolder, startPathSwitching] = useTransition();
+	const [uploadProgress, setUploadProgress] = useState<UploadProgress | undefined>(undefined);
 	const [botRateLimit, setBotRateLimit] = useState<{
 		isRateLimited: boolean;
 		retryAfter: number;
@@ -66,20 +90,21 @@ export const TGCloudGlobalContextWrapper = ({ children }: { children: React.Reac
 		isRateLimited: false,
 		retryAfter: 0
 	});
+	const [miniPlayerAudio, setMiniPlayerAudio] = useState<MiniPlayerAudio | null>(null);
 
 	return (
 		<TGCloudGlobalContext.Provider
 			value={{
 				setSortBy,
 				sortBy,
-				connectionStatus,
-				setConnectionStatus,
-				shouldShowUploadModal,
-				setShouldShowUploadModal,
 				isSwitchingFolder,
 				startPathSwitching,
 				botRateLimit,
-				setBotRateLimit
+				setBotRateLimit,
+				setUploadProgress,
+				uploadProgress,
+				miniPlayerAudio,
+				setMiniPlayerAudio,
 			}}
 		>
 			{children}

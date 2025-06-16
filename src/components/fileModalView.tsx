@@ -52,8 +52,11 @@ export function FileModalView({
 
 	return (
 		<Drawer open={open} onOpenChange={handleOpenChange}>
-			<DrawerTrigger>{children}</DrawerTrigger>
+			<DrawerTrigger className="w-full">{children}</DrawerTrigger>
 			<DrawerContent className="max-h-[90dvh] h-full">
+				<VisuallyHidden.Root>
+					<DialogTitle>Menu</DialogTitle>
+				</VisuallyHidden.Root>
 				<ItemThatWillShowOnModal />
 			</DrawerContent>
 		</Drawer>
