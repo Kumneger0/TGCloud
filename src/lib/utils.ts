@@ -168,16 +168,16 @@ export async function uploadFiles(
 	onProgress: Dispatch<
 		SetStateAction<
 			| {
-				itemName: string;
-				itemIndex: number;
-				progress: number;
-				total: number
-			}
+					itemName: string;
+					itemIndex: number;
+					progress: number;
+					total: number;
+			  }
 			| undefined
 		>
 	>,
 	client: TelegramClient | undefined,
-	folderId: string | null,
+	folderId: string | null
 ) {
 	if (!client) {
 		throw new Error('Failed to initialize Telegram client');
@@ -420,7 +420,7 @@ export const downloadMedia = async (
 
 	try {
 		if (category === 'video')
-			return await handleVideoDownload(client, media as Message['media'], async (chunk) => { });
+			return await handleVideoDownload(client, media as Message['media'], async (chunk) => {});
 		if (media)
 			return await handleMediaDownload(
 				client,
@@ -495,7 +495,6 @@ export const downloadVideoThumbnail = async (
 	return buffer;
 };
 
-
 export async function generateVideoThumbnail(client: TelegramClient, media: Message['media']) {
 	const buffers = [];
 	for await (const buffer of client.iterDownload({
@@ -514,17 +513,16 @@ export async function generateVideoThumbnail(client: TelegramClient, media: Mess
 	video.muted = true;
 	video.playsInline = true;
 
-	await new Promise(resolve => {
+	await new Promise((resolve) => {
 		video.onloadedmetadata = () => {
 			video.currentTime = Math.min(1, video.duration / 2);
 			resolve(void 0);
 		};
 	});
 
-	await new Promise(resolve => {
+	await new Promise((resolve) => {
 		video.onseeked = () => resolve(void 0);
 	});
-
 
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
@@ -536,4 +534,4 @@ export async function generateVideoThumbnail(client: TelegramClient, media: Mess
 
 	const thumbnail = canvas.toDataURL('image/jpeg', 0.9);
 	return thumbnail;
-}	
+}

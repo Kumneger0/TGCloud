@@ -32,7 +32,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { CloudDownload, ImageIcon, Trash2Icon, VideoIcon, Music2Icon as AudioIcon } from './Icons/icons';
+import {
+	CloudDownload,
+	ImageIcon,
+	Trash2Icon,
+	VideoIcon,
+	Music2Icon as AudioIcon
+} from './Icons/icons';
 import FileContextMenu from './fileContextMenu';
 import { FileModalView } from './fileModalView';
 import Upload from './uploadWrapper';
@@ -112,8 +118,7 @@ function Files({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const stableClient = useMemo(() => client, [client?.connected]);
 
-
-	const sortedFileKey = (Array.isArray(files) ? files?.map(file => file.id) : []).join('-')
+	const sortedFileKey = (Array.isArray(files) ? files?.map((file) => file.id) : []).join('-');
 
 	const sortedFiles = useMemo(() => {
 		if (!files || !Array.isArray(files) || files.length === 0) return [];
@@ -125,15 +130,18 @@ function Files({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [sortedFileKey, sortBy]);
 
-	const handleCheckboxChange = useCallback((file: typeof sortedFiles[number], checked: boolean) => {
-		if (checked) {
-			//@ts-ignore
-			setSelectedFiles((prev) => [...prev, file]);
-		} else {
-			//@ts-ignore
-			setSelectedFiles((prev) => prev.filter((f) => f.id !== file.id));
-		}
-	}, [setSelectedFiles]);
+	const handleCheckboxChange = useCallback(
+		(file: (typeof sortedFiles)[number], checked: boolean) => {
+			if (checked) {
+				//@ts-ignore
+				setSelectedFiles((prev) => [...prev, file]);
+			} else {
+				//@ts-ignore
+				setSelectedFiles((prev) => prev.filter((f) => f.id !== file.id));
+			}
+		},
+		[setSelectedFiles]
+	);
 
 	useEffect(() => {
 		(async () => {
@@ -291,7 +299,11 @@ function Files({
 			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{sortedFiles?.map((file) => (
 					<div className="relative w-full" key={file.id}>
-						<EachFile client={stableClient as TelegramClient} file={file as FileItem} user={stableUser} />
+						<EachFile
+							client={stableClient as TelegramClient}
+							file={file as FileItem}
+							user={stableUser}
+						/>
 						<div className="absolute top-2 left-2 z-10">
 							<Input
 								onChange={(e) => handleCheckboxChange(file, e.target.checked)}
@@ -340,28 +352,35 @@ const addBotToChannel = async (client: TelegramClient, user: User) => {
 	if (!user?.channelId || !user.accessHash) throw Error('Failed to create sharable url');
 };
 
-
 const filePlaceholderObj = {
-	image: "/image-placeholder.png",
-	document: "/generic-document-placeholder.png",
-	pdf: "/pdf-placeholder.png",
-	audio: "/audio-placeholder.svg",
-	video: '/video-placeholder.png',
-}
-
+	image: '/image-placeholder.png',
+	document: '/generic-document-placeholder.png',
+	pdf: '/pdf-placeholder.png',
+	audio: '/audio-placeholder.svg',
+	video: '/video-placeholder.png'
+};
 
 const getFilePlaceholder = (file: FileItem) => {
 	if (file.category.startsWith('image')) return filePlaceholderObj.image;
-	if (file.category == "application/pdf") return filePlaceholderObj.pdf;
+	if (file.category == 'application/pdf') return filePlaceholderObj.pdf;
 	if (file.category.startsWith('application')) return filePlaceholderObj.document;
 	if (file.category.startsWith('audio')) return filePlaceholderObj.audio;
 	if (file.category.startsWith('video')) return filePlaceholderObj.video;
-}
+};
 
-
-const EachFile = React.memo(function EachFile({ file, user, client }: { file: FileItem; user: User; client: TelegramClient }) {
+const EachFile = React.memo(function EachFile({
+	file,
+	user,
+	client
+}: {
+	file: FileItem;
+	user: User;
+	client: TelegramClient;
+}) {
 	const [url, setURL] = useState<string>(getFilePlaceholder(file) ?? '/placeholder.svg');
-	const [thumbNailURL, setThumbnailURL] = useState<string>(getFilePlaceholder(file) ?? '/placeholder.svg');
+	const [thumbNailURL, setThumbnailURL] = useState<string>(
+		getFilePlaceholder(file) ?? '/placeholder.svg'
+	);
 	const [isFileNotFoundInTelegram, setFileNotFoundInTelegram] = useState(false);
 
 	const downlaodFile = async (size: 'large' | 'small', category: string) => {
@@ -401,28 +420,28 @@ const EachFile = React.memo(function EachFile({ file, user, client }: { file: Fi
 	useEffect(() => {
 		file.category == 'video'
 			? (async () => {
-				if (!client || typeof client === 'string') return;
+					if (!client || typeof client === 'string') return;
 
-				const media = (await getMessage({
-					client,
-					messageId: file.fileTelegramId,
-					user: user as NonNullable<User>
-				})) as Message['media'];
+					const media = (await getMessage({
+						client,
+						messageId: file.fileTelegramId,
+						user: user as NonNullable<User>
+					})) as Message['media'];
 
-				const thumbnail = await generateVideoThumbnail(client, media as Message['media'])
-				if (thumbnail) {
-					setThumbnailURL(thumbnail);
-					return;
-				}
+					const thumbnail = await generateVideoThumbnail(client, media as Message['media']);
+					if (thumbnail) {
+						setThumbnailURL(thumbnail);
+						return;
+					}
 
-				console.log('no thumbnail', file.fileName)
-			})()
+					console.log('no thumbnail', file.fileName);
+				})()
 			: (() => {
-				downlaodFile('small', file.category);
-				requestIdleCallback(async (e) => {
-					await downlaodFile('large', file.category);
-				});
-			})();
+					downlaodFile('small', file.category);
+					requestIdleCallback(async (e) => {
+						await downlaodFile('large', file.category);
+					});
+				})();
 
 		return () => {
 			URL.revokeObjectURL(url as string);
@@ -430,8 +449,6 @@ const EachFile = React.memo(function EachFile({ file, user, client }: { file: Fi
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [file.category]);
-
-
 
 	const fileContextMenuActions = [
 		{
@@ -444,16 +461,19 @@ const EachFile = React.memo(function EachFile({ file, user, client }: { file: Fi
 				link.click();
 			},
 			Icon: CloudDownload,
-			className: `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted ${!url ? 'cursor-not-allowed opacity-50' : ''
-				}`
+			className: `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted ${
+				!url ? 'cursor-not-allowed opacity-50' : ''
+			}`
 		},
 		{
 			actionName: 'delete',
 			onClick: async () => {
-				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${'small' satisfies MediaSize
-					}-${file.category}`;
-				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${'large' satisfies MediaSize
-					}-${file.category}`;
+				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${
+					'small' satisfies MediaSize
+				}-${file.category}`;
+				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${
+					'large' satisfies MediaSize
+				}-${file.category}`;
 
 				try {
 					await fileCacheDb.fileCache.where('cacheKey').equals(cacheKeySmall).delete();
@@ -502,15 +522,13 @@ const EachFile = React.memo(function EachFile({ file, user, client }: { file: Fi
 		}
 	];
 
-	console.log('file category', file.category)
+	console.log('file category', file.category);
 
 	return (
 		<FileContextMenu fileContextMenuActions={fileContextMenuActions}>
 			<Card
 				id={url}
-				className={
-					`group relative overflow-hidden rounded-lg border border-border bg-background transition-all hover:bg-accent flex flex-col w-full min-w-0`
-				}
+				className={`group relative overflow-hidden rounded-lg border border-border bg-background transition-all hover:bg-accent flex flex-col w-full min-w-0`}
 			>
 				<span className="sr-only">View file</span>
 				<div className="w-full min-w-full flex-1 aspect-square relative bg-muted rounded-t-lg overflow-hidden">
@@ -518,10 +536,7 @@ const EachFile = React.memo(function EachFile({ file, user, client }: { file: Fi
 						<FileModalView
 							id={file.id}
 							ItemThatWillShowOnModal={() => (
-								<ImagePreviewModal
-									fileData={{ ...file, category: 'image' }}
-									url={url!}
-								/>
+								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url!} />
 							)}
 						>
 							<ImageRender fileName={file.fileName} url={url!} />
@@ -594,7 +609,7 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 				fill
 				style={{
 					objectFit: 'cover',
-					objectPosition: 'center',
+					objectPosition: 'center'
 				}}
 				className="w-full h-full object-cover object-center transition-transform duration-200 group-hover:scale-105"
 			/>
@@ -664,7 +679,6 @@ const VideoMediaView = ({
 			});
 		}
 	}, []);
-
 
 	return (
 		<div className="flex flex-col h-full">
@@ -756,35 +770,45 @@ function AudioMediaView({
 }) {
 	const [duration, setDuration] = useState<number | null>(null);
 	const audioRef = useRef<HTMLAudioElement>(null);
-	const [blobURL, setBlobURL] = useState<string>("");
+	const [blobURL, setBlobURL] = useState<string>('');
 	const tGCloudGlobalContext = getGlobalTGCloudContext();
 	const { setMiniPlayerAudio, miniPlayerAudio } = tGCloudGlobalContext ?? {};
 
 	useEffect(() => {
 		(async () => {
-			await downloadMedia({ category: 'audio', setURL: setBlobURL, user, messageId: fileData.fileTelegramId, size: 'large' }, client);
+			await downloadMedia(
+				{
+					category: 'audio',
+					setURL: setBlobURL,
+					user,
+					messageId: fileData.fileTelegramId,
+					size: 'large'
+				},
+				client
+			);
 		})();
 
 		if (miniPlayerAudio) {
-			setMiniPlayerAudio && setMiniPlayerAudio({
-				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-				blobURL: miniPlayerAudio.blobURL,
-				isPlaying: false,
-				progress: miniPlayerAudio?.progress ?? 0,
-				duration: miniPlayerAudio?.duration ?? 0,
-				currentTime: miniPlayerAudio?.currentTime ?? 0,
-				isMinimized: false,
-				fileTelegramId: fileData.fileTelegramId
-			});
+			setMiniPlayerAudio &&
+				setMiniPlayerAudio({
+					fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
+					blobURL: miniPlayerAudio.blobURL,
+					isPlaying: false,
+					progress: miniPlayerAudio?.progress ?? 0,
+					duration: miniPlayerAudio?.duration ?? 0,
+					currentTime: miniPlayerAudio?.currentTime ?? 0,
+					isMinimized: false,
+					fileTelegramId: fileData.fileTelegramId
+				});
 			if (audioRef.current && miniPlayerAudio.fileTelegramId === fileData.fileTelegramId) {
 				audioRef.current.onloadedmetadata = () => {
 					audioRef.current!.currentTime = miniPlayerAudio.currentTime;
-				}
+				};
 			}
 		}
 		return () => {
-			audioRef.current = null
-		}
+			audioRef.current = null;
+		};
 	}, []);
 
 	const handleLoadedMetadata = () => {
@@ -797,16 +821,17 @@ function AudioMediaView({
 		const duration = audioRef.current?.duration ?? 0;
 		const progress = currentTime / duration;
 		const result = document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-		setMiniPlayerAudio && setMiniPlayerAudio({
-			fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-			blobURL,
-			isPlaying: true,
-			currentTime,
-			duration,
-			progress,
-			isMinimized: true,
-			fileTelegramId: fileData.fileTelegramId
-		});
+		setMiniPlayerAudio &&
+			setMiniPlayerAudio({
+				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
+				blobURL,
+				isPlaying: true,
+				currentTime,
+				duration,
+				progress,
+				isMinimized: true,
+				fileTelegramId: fileData.fileTelegramId
+			});
 	};
 
 	return (
@@ -849,7 +874,11 @@ function AudioMediaView({
 						</div>
 						<div className="flex items-center gap-2">
 							<span>Duration:</span>
-							<span>{duration ? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} min` : '—'}</span>
+							<span>
+								{duration
+									? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} min`
+									: '—'}
+							</span>
 						</div>
 					</div>
 				</div>

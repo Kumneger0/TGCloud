@@ -1,8 +1,8 @@
-'use client'
+'use client';
 import { getGlobalTGCloudContext } from '@/lib/context';
 import { Progress } from './ui/progress';
 export function UploadProgressOverlay() {
-	const tgCloudContext = getGlobalTGCloudContext()
+	const tgCloudContext = getGlobalTGCloudContext();
 	if (!tgCloudContext) return null;
 	const progress = tgCloudContext.uploadProgress;
 	if (!progress) return null;
@@ -13,7 +13,6 @@ export function UploadProgressOverlay() {
 			<div className="bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-4 min-w-[320px]">
 				<div className="flex justify-between items-center mb-4">
 					<h3 className="font-semibold">Uploading Files</h3>
-
 				</div>
 
 				<div className="space-y-3">

@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
 		]
 	},
 	experimental: {
-		optimizePackageImports: ['telegram', "posthog-js", "@sentry/nextjs"]
+		optimizePackageImports: ['telegram', 'posthog-js', '@sentry/nextjs']
 	},
 	webpack: (config, { isServer }) => {
 		if (isServer) {

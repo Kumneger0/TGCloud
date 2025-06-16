@@ -6,7 +6,6 @@ import { env } from '../env';
 import { FileItem } from './types';
 import { ProgressProvider } from '@bprogress/next/app';
 
-
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 		api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -57,25 +56,25 @@ export interface MiniPlayerAudio {
 
 export const TGCloudGlobalContext = React.createContext<
 	| {
-		sortBy: SortBy;
-		setSortBy: Dispatch<SetStateAction<SortBy>>;
-		isSwitchingFolder: boolean;
-		startPathSwitching: React.TransitionStartFunction;
-		uploadProgress: UploadProgress | undefined;
-		setUploadProgress: Dispatch<SetStateAction<UploadProgress | undefined>>;
-		botRateLimit: {
-			isRateLimited: boolean;
-			retryAfter: number;
-		};
-		setBotRateLimit: React.Dispatch<
-			React.SetStateAction<{
+			sortBy: SortBy;
+			setSortBy: Dispatch<SetStateAction<SortBy>>;
+			isSwitchingFolder: boolean;
+			startPathSwitching: React.TransitionStartFunction;
+			uploadProgress: UploadProgress | undefined;
+			setUploadProgress: Dispatch<SetStateAction<UploadProgress | undefined>>;
+			botRateLimit: {
 				isRateLimited: boolean;
 				retryAfter: number;
-			}>
-		>;
-		miniPlayerAudio: MiniPlayerAudio | null;
-		setMiniPlayerAudio: Dispatch<SetStateAction<MiniPlayerAudio | null>>;
-	}
+			};
+			setBotRateLimit: React.Dispatch<
+				React.SetStateAction<{
+					isRateLimited: boolean;
+					retryAfter: number;
+				}>
+			>;
+			miniPlayerAudio: MiniPlayerAudio | null;
+			setMiniPlayerAudio: Dispatch<SetStateAction<MiniPlayerAudio | null>>;
+	  }
 	| undefined
 >(undefined);
 
@@ -104,7 +103,7 @@ export const TGCloudGlobalContextWrapper = ({ children }: { children: React.Reac
 				setUploadProgress,
 				uploadProgress,
 				miniPlayerAudio,
-				setMiniPlayerAudio,
+				setMiniPlayerAudio
 			}}
 		>
 			{children}

@@ -46,23 +46,29 @@ export const UploadFiles = ({
 	const handleSubmit = async (formData: FormData) => {
 		if (tgCloudContext?.botRateLimit.isRateLimited) return null;
 		const client = await getTgClient({ setBotRateLimit: tgCloudContext?.setBotRateLimit });
-		type UploadProgresFnType = NonNullable<(typeof tgCloudContext)>['setUploadProgress']
+		type UploadProgresFnType = NonNullable<typeof tgCloudContext>['setUploadProgress'];
 
 		const setUploadProgressFn: UploadProgresFnType = (progress) => {
-			console.log(progress)
-		}
+			console.log(progress);
+		};
 
 		await promiseToast({
 			cb: () => {
 				setOpen(false);
-				return uploadFiles(formData, user, tgCloudContext?.setUploadProgress || setUploadProgressFn, client, folderId);
+				return uploadFiles(
+					formData,
+					user,
+					tgCloudContext?.setUploadProgress || setUploadProgressFn,
+					client,
+					folderId
+				);
 			},
 			errMsg: 'We apologize, but there was an error uploading your files',
 			successMsg: 'File Uploaded',
 			loadingMsg: 'please wait',
 			position: 'top-right'
 		});
-		tgCloudContext?.setUploadProgress?.(undefined)
+		tgCloudContext?.setUploadProgress?.(undefined);
 		setFiles([]);
 		router.refresh();
 	};
@@ -89,8 +95,9 @@ export const UploadFiles = ({
 						{({ getRootProps, getInputProps, isDragActive }) => (
 							<div
 								{...getRootProps()}
-								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${isDragActive ? 'border-primary' : 'border-primary-foreground'
-									}`}
+								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${
+									isDragActive ? 'border-primary' : 'border-primary-foreground'
+								}`}
 							>
 								<CloudUploadIcon className="w-10 h-10 text-primary" />
 								<h3 className="text-2xl font-bold">Upload Files</h3>
