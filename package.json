@@ -51,6 +51,7 @@
 		"drizzle-orm": "^0.31.4",
 		"fluid-player": "^3.53.0",
 		"lucide-react": "^0.402.0",
+		"markdown-to-jsx": "^7.7.7",
 		"next": "^15.3.3",
 		"next-nprogress-bar": "^2.4.7",
 		"next-themes": "^0.3.0",
@@ -71,6 +72,7 @@
 		"zod": "^3.25.64"
 	},
 	"devDependencies": {
+		"@tailwindcss/typography": "^0.5.16",
 		"@types/node": "^20.17.32",
 		"@types/react": "19.1.8",
 		"@types/react-dom": "19.1.6",
