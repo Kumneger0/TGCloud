@@ -48,20 +48,10 @@ export const UploadFiles = ({
 		const client = await getTgClient({ setBotRateLimit: tgCloudContext?.setBotRateLimit });
 		type UploadProgresFnType = NonNullable<typeof tgCloudContext>['setUploadProgress'];
 
-		const setUploadProgressFn: UploadProgresFnType = (progress) => {
-			console.log(progress);
-		};
-
 		await promiseToast({
 			cb: () => {
 				setOpen(false);
-				return uploadFiles(
-					formData,
-					user,
-					tgCloudContext?.setUploadProgress || setUploadProgressFn,
-					client,
-					folderId
-				);
+				return uploadFiles(formData, user, tgCloudContext?.setUploadProgress, client, folderId);
 			},
 			errMsg: 'We apologize, but there was an error uploading your files',
 			successMsg: 'File Uploaded',

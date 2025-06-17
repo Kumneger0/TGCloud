@@ -124,9 +124,6 @@ importers:
       posthog-js:
         specifier: ^1.252.1
         version: 1.252.1
-      prettier:
-        specifier: ^3.5.3
-        version: 3.5.3
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -173,6 +170,9 @@ importers:
       '@types/react-dom':
         specifier: 19.1.6
         version: 19.1.6(@types/react@19.1.8)
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       drizzle-kit:
         specifier: ^0.22.8
         version: 0.22.8
@@ -182,6 +182,9 @@ importers:
       eslint-config-next:
         specifier: 15.0.0
         version: 15.0.0(eslint@8.57.1)(typescript@5.8.3)
+      prettier:
+        specifier: ^3.5.3
+        version: 3.5.3
       tailwindcss:
         specifier: ^3.4.17
         version: 3.4.17
@@ -3762,6 +3765,14 @@ packages:
       {
         integrity: sha512-Sz4PP4ZA+Rq4II21qkNqOEDTDrCvcANId3xpIgB34NDkWc3UduWj2dqEtN9yZIq8Dk3HyPI33x9sqqU5C8sr0g==
       }
+
+  cross-env@7.0.3:
+    resolution:
+      {
+        integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==
+      }
+    engines: { node: '>=10.14', npm: '>=6', yarn: '>=1' }
+    hasBin: true
 
   cross-spawn@7.0.6:
     resolution:
@@ -9814,6 +9825,10 @@ snapshots:
   convert-source-map@2.0.0: {}
 
   core-js@3.42.0: {}
+
+  cross-env@7.0.3:
+    dependencies:
+      cross-spawn: 7.0.6
 
   cross-spawn@7.0.6:
     dependencies:

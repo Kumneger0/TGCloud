@@ -3,7 +3,7 @@ import { getGlobalTGCloudContext } from '@/lib/context';
 import { formatBytes } from '@/lib/utils';
 import { FileAudioIcon, Pause, Play as PlayIcon, X } from 'lucide-react';
 import Image from 'next/image';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { ReactEventHandler, SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 
 const MiniAudioPlayer = React.memo(() => {
@@ -44,11 +44,12 @@ const MiniAudioPlayer = React.memo(() => {
 		}
 	}, [isPlaying]);
 
-	const handleTimeUpdate = useDebouncedCallback(() => {
+	const handleTimeUpdate = useDebouncedCallback((e: SyntheticEvent<HTMLAudioElement>) => {
+		console.log('handleTimeUpdate', e.currentTarget.currentTime);
 		if (audioRef.current) {
 			setProgress(audioRef.current.currentTime);
 		}
-	}, 2000);
+	}, 1000);
 
 	if (!miniPlayerAudio) return null;
 

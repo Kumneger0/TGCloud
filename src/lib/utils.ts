@@ -3,10 +3,10 @@ import { fileCacheDb } from '@/lib/dexie';
 import Message, { MessageMediaPhoto } from '@/lib/types';
 import { type ClassValue, clsx } from 'clsx';
 import { ReadonlyURLSearchParams } from 'next/navigation';
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
+import { Dispatch, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
-import { Api, client, TelegramClient } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError, TypeNotFoundError } from 'telegram/errors';
 import { ChannelDetails, User } from './types';
@@ -165,17 +165,19 @@ export function formatBytes(bytes: number) {
 export async function uploadFiles(
 	formData: FormData,
 	user: User,
-	onProgress: Dispatch<
-		SetStateAction<
-			| {
-					itemName: string;
-					itemIndex: number;
-					progress: number;
-					total: number;
-			  }
-			| undefined
-		>
-	>,
+	onProgress:
+		| Dispatch<
+				SetStateAction<
+					| {
+							itemName: string;
+							itemIndex: number;
+							progress: number;
+							total: number;
+					  }
+					| undefined
+				>
+		  >
+		| undefined,
 	client: TelegramClient | undefined,
 	folderId: string | null
 ) {
@@ -193,12 +195,13 @@ export async function uploadFiles(
 				file: file,
 				workers: 5,
 				onProgress: (progress) => {
-					onProgress({
-						itemName: file.name,
-						itemIndex: index,
-						progress: progress,
-						total: files.length
-					});
+					onProgress &&
+						onProgress({
+							itemName: file.name,
+							itemIndex: index,
+							progress: progress,
+							total: files.length
+						});
 				}
 			});
 

@@ -1,7 +1,7 @@
 'use client';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
-import React, { Dispatch, SetStateAction, useState, useTransition } from 'react';
+import React, { Dispatch, SetStateAction, useMemo, useState, useTransition } from 'react';
 import { env } from '../env';
 import { FileItem } from './types';
 import { ProgressProvider } from '@bprogress/next/app';
@@ -20,12 +20,7 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
 const Providers = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<>
-			<ProgressProvider
-				height="4px"
-				color="#fffd00"
-				options={{ showSpinner: false }}
-				shallowRouting
-			>
+			<ProgressProvider height="4px" color="#f00" options={{ showSpinner: false }} shallowRouting>
 				{children}
 			</ProgressProvider>
 		</>
@@ -91,23 +86,28 @@ export const TGCloudGlobalContextWrapper = ({ children }: { children: React.Reac
 	});
 	const [miniPlayerAudio, setMiniPlayerAudio] = useState<MiniPlayerAudio | null>(null);
 
+	const rateLimitKey = `${botRateLimit.isRateLimited}-${botRateLimit.retryAfter}`;
+	const uploadProgressKey = `${uploadProgress?.itemName}-${uploadProgress?.itemIndex}-${uploadProgress?.progress}-${uploadProgress?.total}`;
+	const miniPlayerAudioKey = `${miniPlayerAudio?.fileData.fileName}-${miniPlayerAudio?.fileData.size}-${miniPlayerAudio?.fileData.folderId}-${miniPlayerAudio?.fileData.date}-${miniPlayerAudio?.fileData.fileTelegramId}`;
+
+	const contextValue = useMemo(() => {
+		return {
+			setSortBy,
+			sortBy,
+			isSwitchingFolder,
+			startPathSwitching,
+			botRateLimit,
+			setBotRateLimit,
+			setUploadProgress,
+			uploadProgress,
+			miniPlayerAudio,
+			setMiniPlayerAudio
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [sortBy, isSwitchingFolder, rateLimitKey, uploadProgressKey, miniPlayerAudioKey]);
+
 	return (
-		<TGCloudGlobalContext.Provider
-			value={{
-				setSortBy,
-				sortBy,
-				isSwitchingFolder,
-				startPathSwitching,
-				botRateLimit,
-				setBotRateLimit,
-				setUploadProgress,
-				uploadProgress,
-				miniPlayerAudio,
-				setMiniPlayerAudio
-			}}
-		>
-			{children}
-		</TGCloudGlobalContext.Provider>
+		<TGCloudGlobalContext.Provider value={contextValue}>{children}</TGCloudGlobalContext.Provider>
 	);
 };
 

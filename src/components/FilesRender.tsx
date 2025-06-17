@@ -654,13 +654,22 @@ const VideoMediaView = ({
 
 	useEffect(() => {
 		(async () => {
-			const message = await getMessage({
-				client,
-				messageId: fileData.fileTelegramId,
-				user: user as NonNullable<User>
+			const message = await withTelegramConnection(client, async (client) => {
+				const message = await getMessage({
+					client,
+					messageId: fileData.fileTelegramId,
+					user: user as NonNullable<User>
+				});
+
+				if (!message) {
+					throw new Error('Failed to get message');
+				}
+				return message;
 			});
 
-			await handleVideoDownload(client, message as Message['media'], setURL);
+			await withTelegramConnection(client, async (client) => {
+				await handleVideoDownload(client, message as Message['media'], setURL);
+			});
 		})();
 
 		if (!playerRef.current) {
@@ -776,16 +785,21 @@ function AudioMediaView({
 
 	useEffect(() => {
 		(async () => {
-			await downloadMedia(
-				{
-					category: 'audio',
-					setURL: setBlobURL,
-					user,
-					messageId: fileData.fileTelegramId,
-					size: 'large'
-				},
-				client
-			);
+			await withTelegramConnection(client, async (client) => {
+				await downloadMedia(
+					{
+						category: 'audio',
+						setURL: setBlobURL,
+						user,
+						messageId: fileData.fileTelegramId,
+						size: 'large'
+					},
+					client
+				);
+				if (!blobURL) {
+					throw new Error('Failed to download audio file');
+				}
+			});
 		})();
 
 		if (miniPlayerAudio) {
@@ -833,6 +847,40 @@ function AudioMediaView({
 				fileTelegramId: fileData.fileTelegramId
 			});
 	};
+
+	if (Number(fileData.size) > 5 * 1024 * 1024) {
+		return (
+			<div className="flex flex-col h-full">
+				<div className="flex-1 overflow-y-auto">
+					<div className="relative aspect-square flex flex-col items-center justify-center gap-4 bg-muted rounded-t-lg p-6">
+						<Image
+							src="/audio-placeholder.svg"
+							alt={fileData.fileName}
+							width={192}
+							height={192}
+							className="object-contain w-32 h-32"
+						/>
+						<div className="text-center space-y-4">
+							<h3 className="text-lg font-medium">Audio file too large to preview</h3>
+							<p className="text-sm text-muted-foreground">
+								We can&lsquo;t play files larger than 5mb. Please download the file to play it.
+							</p>
+						</div>
+						<div className="flex flex-col gap-2 text-sm text-muted-foreground">
+							<div className="flex items-center gap-2">
+								<span>File Name:</span>
+								<span>{fileData.fileName}</span>
+							</div>
+							<div className="flex items-center gap-2">
+								<AudioIcon className="w-4 h-4" />
+								<span>Size: {formatBytes(Number(fileData.size))}</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex flex-col h-full">
