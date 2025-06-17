@@ -21,6 +21,12 @@ const nextConfig: NextConfig = {
 			}
 		]
 	},
+	compiler: {
+		removeConsole: process.env.NODE_ENV === 'production'
+	},
+	experimental: {
+		optimizePackageImports: ['telegram', 'posthog-js', '@sentry/nextjs']
+	},
 	webpack: (config, { isServer }) => {
 		if (isServer) {
 			return config;

@@ -52,12 +52,14 @@ TGCloud offers a simple, secure, and free way to store and manage files. Built w
 ### Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/kumneger0/TGCloud.git
 cd TGCloud
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 # or
@@ -67,12 +69,15 @@ pnpm install
 ```
 
 3. Set up environment variables:
+
 ```bash
 cp .env.example .env.local
 ```
+
 Edit `.env.local` with your configuration details.
 
 4. Set up the database:
+
 ```bash
 npm run db:migrate
 # or
@@ -82,6 +87,7 @@ pnpm db:migrate
 ```
 
 5. Run the development server:
+
 ```bash
 npm run dev
 # or
@@ -94,14 +100,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 ## 🖥 Technologies Used
 
-  - Next.js
-  - Tailwind CSS
-  - Shadcn UI
-  - Drizzle ORM
-  - PostgreSQL
-  - Better Auth
-  - Telegram API
-  - Dexie (for client-side caching)
+- Next.js
+- Tailwind CSS
+- Shadcn UI
+- Drizzle ORM
+- PostgreSQL
+- Better Auth
+- Telegram API
+- Dexie (for client-side caching)
 
 ## 🤝 Contributing
 
@@ -124,6 +130,7 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 ## 📞 Contact
 
 For questions or support, please reach out to:
+
 - Email: tgcloud@kumneger.dev
 - Project Lead: Kumneger Wondimu
 
