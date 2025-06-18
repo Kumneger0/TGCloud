@@ -3,11 +3,18 @@ import path from 'path';
 import { notFound } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Metadata } from 'next';
-import Link from 'next/link';
+import Link from 'next/link';   
 
 const Markdown = dynamic(() => import('markdown-to-jsx'));
-export const generateMetadata = async ({ params }: { params: { 'change-log': string } }): Promise<Metadata> => {
-    const { 'change-log': changeLog } = params;
+
+type ChangelogDetailPageProps = {
+    params: Promise<{ 'change-log': string }>;
+};
+export const generateMetadata = async ({
+    params
+}: ChangelogDetailPageProps
+): Promise<Metadata> => {
+    const { 'change-log': changeLog } = await params;
     const filePath = path.join(process.cwd(), 'src/app/(---)/changelog', `${changeLog}.mdx`);
     let content = '';
     let title = `Changelog - ${changeLog}`;
@@ -30,20 +37,26 @@ export const generateMetadata = async ({ params }: { params: { 'change-log': str
                     url: `/api/og?text=${encodeURIComponent(ogText)}`,
                     width: 1200,
                     height: 630,
-                    alt: ogText,
-                },
-            ],
-        },
+                    alt: ogText
+                }
+            ]
+        }
     };
 };
 
 export async function generateStaticParams() {
     const changelogDir = path.join(process.cwd(), 'src/app/(---)/changelog');
-    const changelogFiles = fs.readdirSync(changelogDir).filter((file) => file.endsWith('.mdx'));
-    return changelogFiles.map((file) => ({ 'change-log': file.replace('.mdx', '') }));
+    const changelogFiles = fs
+        .readdirSync(changelogDir)
+        .filter((file) => file.endsWith('.mdx'))
+        .map((fname) => fname.replace('.mdx', ''))
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    return changelogFiles.map((file) => ({ 'change-log': file }))
 }
 
-export default async function ChangelogDetailPage({ params }: { params: { 'change-log': string } }) {
+
+
+export default async function ChangelogDetailPage({ params }: ChangelogDetailPageProps) {
     const { 'change-log': changeLog } = await params;
     const filePath = path.join(process.cwd(), 'src/app/(---)/changelog', `${changeLog}.mdx`);
     let content = '';
@@ -67,4 +80,4 @@ export default async function ChangelogDetailPage({ params }: { params: { 'chang
             </main>
         </div>
     );
-} 
+}
