@@ -47,7 +47,7 @@ TGCloud offers a simple, secure, and free way to store and manage files. Built w
 
 - Node.js 18.x or higher
 - PostgreSQL database
-- Telegram Bot API token
+- Telegram Bot token
 
 ### Setup
 
@@ -61,38 +61,29 @@ cd TGCloud
 2. Install dependencies:
 
 ```bash
-npm install
-# or
-yarn install
-# or
 pnpm install
 ```
 
 3. Set up environment variables:
 
+Create your environment files for development and production using the provided `.env.example` as a template:
+
 ```bash
-cp .env.example .env.local
+cp .env.example .env.development
+cp .env.example .env.production
 ```
 
-Edit `.env.local` with your configuration details.
+Edit both `.env.development` and `.env.production` and replace all placeholder values with your own credentials 
 
 4. Set up the database:
 
 ```bash
-npm run db:migrate
-# or
-yarn db:migrate
-# or
 pnpm db:migrate
 ```
 
 5. Run the development server:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
 pnpm dev
 ```
 
