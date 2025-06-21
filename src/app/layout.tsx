@@ -8,6 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 import { Toaster } from 'react-hot-toast';
 import Providers, { CSPostHogProvider, TGCloudGlobalContextWrapper } from '@/lib/context';
 import MiniAudioPlayer from '@/components/MiniAudioPlayer';
+import RecentUpdate from '@/components/RecentUpdate';
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://yourtgcloud.vercel.app/'),
@@ -63,6 +64,7 @@ export default async function RootLayout({
 							disableTransitionOnChange
 						>
 							<TGCloudGlobalContextWrapper>
+								<RecentUpdate />
 								{children}
 								<MiniAudioPlayer />
 							</TGCloudGlobalContextWrapper>

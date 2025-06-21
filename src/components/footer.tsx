@@ -15,6 +15,9 @@ function Footer() {
 				<Link href="/support" className="text-sm hover:underline" prefetch={false}>
 					Support
 				</Link>
+				<Link href="/changelog" className="text-sm hover:underline" prefetch={false}>
+					Changelog
+				</Link>
 			</nav>
 		</footer>
 	);
