@@ -21,7 +21,7 @@ export default function UpdateBanner({
 	if (!show) return null;
 
 	return (
-		<div className="sticky top-0 left-0 right-0 z-50 bg-black dark:bg-white text-white dark:text-black py-3 px-4 shadow-lg">
+		<div className="sticky top-0 left-0 right-0 z-[9999] bg-black dark:bg-white text-white dark:text-black py-3 px-4 shadow-lg">
 			<div className="max-w-5xl mx-auto flex items-center justify-between">
 				<div className="flex items-center space-x-3">
 					<span className="text-xl">🎉</span>
