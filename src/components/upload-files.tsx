@@ -49,7 +49,7 @@ export const UploadFiles = ({
 					}
 				: {
 						authType: 'bot',
-						botToken: user.botTokens?.[0].token,
+						botToken: user.botTokens?.[0]?.token,
 						setBotRateLimit
 					};
 
