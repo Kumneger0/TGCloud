@@ -9,11 +9,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getGlobalTGCloudContext } from '@/lib/context';
 import { useCreateQueryString } from '@/lib/utils';
+import { useGlobalStore } from '@/store/global-store';
 import { ChevronRight, Home, Plus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { use, useOptimistic, useState } from 'react';
+import { use, useEffect, useOptimistic, useState, useTransition } from 'react';
 
 export type AllFolder = {
 	id: string;
@@ -47,7 +47,10 @@ export default function FolderNavigationBar({
 	const currentFolder = allFolder.find((folder) => folder.id === currentFolderId);
 	const pathNames = currentFolder ? currentFolder.path.split('/').filter(Boolean) : [];
 	const [optimisiticPathNames, setOPtimisticPathNames] = useOptimistic(pathNames);
-	const TGCloudGlobalContext = getGlobalTGCloudContext();
+	const [pending, startTransition] = useTransition();
+
+	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
+	const startPathSwitching = useGlobalStore((state) => state.startPathSwitching);
 
 	const router = useRouter();
 	const pathname = usePathname();
@@ -61,6 +64,11 @@ export default function FolderNavigationBar({
 			setNewFolderName('');
 		}
 	};
+
+	useEffect(() => {
+		startPathSwitching(pending);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pending]);
 
 	return (
 		<div className="	flex items-center justify-between p-2 bg-zinc-800 rounded-md">
@@ -84,7 +92,7 @@ export default function FolderNavigationBar({
 									const fullPath = `/${expectedPath.join('/')}`;
 									const matchingFolder = allFolder.find((f) => f.path === fullPath);
 									const query = createQueryString('folderId', matchingFolder?.id!);
-									TGCloudGlobalContext?.startPathSwitching(() => {
+									startTransition(() => {
 										setOPtimisticPathNames(expectedPath);
 										router.push(pathname + '?' + query);
 									});

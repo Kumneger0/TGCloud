@@ -421,7 +421,7 @@ export async function createFolder(name: string, parentId: string | null) {
 		parentId,
 		path
 	});
-	revalidateTag('get-folder');
+	revalidateTag('get-folder', 'max');
 	return folderId;
 }
 
@@ -498,7 +498,7 @@ export const requireUserAuthentication = async () => {
 	if (!user.channelUsername && (!user.channelId || !user.accessHash))
 		throw new Error('There was something wrong');
 
-	return user as User;
+	return user;
 };
 
 export const updateHasPublicChannelStatus = async (isPublic: boolean) => {

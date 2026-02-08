@@ -1,13 +1,13 @@
 'use client';
 import { createFolder, getFolderHierarchy } from '@/actions';
 import { Button } from '@/components/ui/button';
-import { getGlobalTGCloudContext } from '@/lib/context';
 import { Folder as FolderType } from '@/lib/types';
 import { useCreateQueryString } from '@/lib/utils';
 import { ChevronDown, ChevronUp, Folder } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useOptimistic, useState } from 'react';
+import { useEffect, useOptimistic, useState, useTransition } from 'react';
 import FolderNavigationBar from './folder-navigation-bar';
+import { useGlobalStore } from '@/store/global-store';
 
 export type AllFolder = {
 	id: string;
@@ -37,15 +37,23 @@ export default function StoragePage({
 	const [isFoldersVisible, setIsFoldersVisible] = useState(true);
 	const [foldersOptimistic, setFoldersOptimistic] = useOptimistic<FolderType[]>(folders);
 	const [currentlySelectedFolderId, setCurrentlySelectedFolderId] = useState(currentFolderId);
-	const TGCloudGlobalContext = getGlobalTGCloudContext();
 
 	const searchParams = useSearchParams();
 	const createQueryString = useCreateQueryString(searchParams);
 	const pathname = usePathname();
 	const router = useRouter();
 
+	const [pending, startTransition] = useTransition();
+
+	const startPathSwitching = useGlobalStore((state) => state.startPathSwitching);
+
+	useEffect(() => {
+		startPathSwitching(pending);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [pending]);
+
 	const handleNavigate = (folderId: string | null) => {
-		TGCloudGlobalContext?.startPathSwitching(() => {
+		startTransition(() => {
 			if (folderId) {
 				router.push(`${pathname}?folderId=${folderId}`);
 			} else {
@@ -120,7 +128,7 @@ export default function StoragePage({
 									if (isTemp) return;
 									setCurrentlySelectedFolderId(folder?.id as string);
 									const childFolders = allFolder.filter(({ parentId }) => parentId == folder?.id);
-									TGCloudGlobalContext?.startPathSwitching(() => {
+									startTransition(() => {
 										setFoldersOptimistic(childFolders);
 										router.push(path);
 									});

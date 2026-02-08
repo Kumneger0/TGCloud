@@ -13,6 +13,7 @@ import { env } from '@/env';
 import { relations } from 'drizzle-orm';
 
 export const planEnum = pgEnum('plan', ['ANNUAL', 'MONTHLY']);
+export const authTypeEnum = pgEnum('authType', ['user', 'bot']);
 
 export const usersTable = pgTable(
 	'usersTable',
@@ -34,6 +35,7 @@ export const usersTable = pgTable(
 		createdAt: timestamp('createdAt', { mode: 'string' }).$defaultFn(() =>
 			new Date().toDateString()
 		),
+		authType: authTypeEnum('authType').notNull().default('user'),
 		updatedAt: timestamp('updatedAt', { mode: 'string' }).$defaultFn(() =>
 			new Date().toDateString()
 		)

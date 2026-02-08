@@ -2,6 +2,16 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 import { NextConfig } from 'next';
 const nextConfig: NextConfig = {
+	turbopack: {
+		resolveAlias: {
+			fs: {
+				browser: './src/lib/empty.ts'
+			},
+			net: {
+				browser: './src/lib/empty.ts'
+			}
+		}
+	},
 	images: {
 		remotePatterns: [
 			{

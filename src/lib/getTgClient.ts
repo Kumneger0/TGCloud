@@ -4,16 +4,19 @@ import { env } from '@/env';
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 
-export interface GetTgClientOptions {
-	stringSession?: string;
-	botToken?: string;
-	setBotRateLimit?: React.Dispatch<
-		React.SetStateAction<{
-			isRateLimited: boolean;
-			retryAfter: number;
-		}>
-	>;
-}
+export type GetTgClientOptions = GetTgClientUserTypeArgs | GetTgClientBotTypeArgs;
+
+type GetTgClientUserTypeArgs = {
+	authType: 'user';
+	stringSession: string;
+};
+
+type GetTgClientBotTypeArgs = {
+	authType: 'bot';
+	botToken: string;
+	setBotRateLimit: (botRateLimit: { isRateLimited: boolean; retryAfter: number }) => void;
+};
+
 const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 	user: Awaited<ReturnType<typeof getUser>>
 ) => {
@@ -39,37 +42,40 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 	return tokenWithLeastAmountOfRemainingRateLimit?.token;
 };
 
-export async function getTgClient({
-	stringSession,
-	botToken,
-	setBotRateLimit
-}: GetTgClientOptions = {}) {
+export async function getTgClient(options: GetTgClientOptions) {
 	if (typeof window === 'undefined') return;
 	const user = await getUser();
 	if (!user) return;
 	const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user);
-	const token = botToken ?? userBotToken ?? env.NEXT_PUBLIC_BOT_TOKEN;
 
 	try {
 		localStorage.removeItem('GramJs:apiCache');
 		const client = new TelegramClient(
-			new StringSession(stringSession),
+			new StringSession(options.authType === 'user' ? options.stringSession : options.botToken),
 			env.NEXT_PUBLIC_TELEGRAM_API_ID,
 			env.NEXT_PUBLIC_TELEGRAM_API_HASH,
 			{ connectionRetries: 5 }
 		);
 
+		if (options.authType === 'user') {
+			return client;
+		}
+
+		const token = options.botToken ?? userBotToken ?? env.NEXT_PUBLIC_BOT_TOKEN;
 		try {
 			await client.start({
 				botAuthToken: token
 			});
-		} catch (startError: any) {
-			if (startError?.message?.includes('A wait of')) {
-				const waitTimeMatch = startError.message.match(/(\d+)\sseconds/);
+		} catch (startError: unknown) {
+			console.error('startError', startError);
+			console.error('startError', startError);
+			const error = startError as { message?: string };
+			if (error?.message?.includes('A wait of')) {
+				const waitTimeMatch = error.message.match(/(\d+)\sseconds/);
 				if (waitTimeMatch) {
 					const waitTime = parseInt(waitTimeMatch[1]);
 					const timeInMilliseconds = waitTime * 1000;
-					setBotRateLimit?.({
+					options.setBotRateLimit?.({
 						isRateLimited: true,
 						retryAfter: waitTime
 					});

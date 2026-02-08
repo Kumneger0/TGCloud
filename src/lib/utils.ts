@@ -10,6 +10,7 @@ import { Api, TelegramClient } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError, TypeNotFoundError } from 'telegram/errors';
 import { ChannelDetails, User } from './types';
+import { UploadProgress } from '@/store/global-store';
 
 export type MediaSize = 'large' | 'small';
 export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
@@ -165,19 +166,7 @@ export function formatBytes(bytes: number) {
 export async function uploadFiles(
 	formData: FormData,
 	user: User,
-	onProgress:
-		| Dispatch<
-				SetStateAction<
-					| {
-							itemName: string;
-							itemIndex: number;
-							progress: number;
-							total: number;
-					  }
-					| undefined
-				>
-		  >
-		| undefined,
+	onProgress: (progress: UploadProgress) => void | undefined,
 	client: TelegramClient | undefined,
 	folderId: string | null
 ) {
@@ -446,9 +435,9 @@ export const handleVideoDownload = async (
 ) => {
 	for await (const buffer of client.iterDownload({
 		file: media as unknown as Api.TypeMessageMedia,
-		requestSize: 3 * 1024 * 1024 // 3MB
+		requestSize: 3 * 1024 * 1024
 	})) {
-		const blob = new Blob([buffer as unknown as Buffer]);
+		const blob = new Blob([buffer as BlobPart]);
 		const url = URL.createObjectURL(blob);
 		setURL(url);
 		break;
@@ -471,7 +460,7 @@ export const handleMediaDownload = async (
 		thumb: size === 'small' ? 0 : undefined
 	});
 
-	const blob = new Blob([buffer as unknown as Buffer]);
+	const blob = new Blob([buffer as BlobPart]);
 
 	fileCacheDb.fileCache.add({
 		id: Date.now(),
@@ -499,12 +488,12 @@ export const downloadVideoThumbnail = async (
 };
 
 export async function generateVideoThumbnail(client: TelegramClient, media: Message['media']) {
-	const buffers = [];
+	const buffers: BlobPart[] = [];
 	for await (const buffer of client.iterDownload({
 		file: media as unknown as Api.TypeMessageMedia,
 		requestSize: 1 * 1024 * 1024
 	})) {
-		buffers.push(buffer);
+		buffers.push(buffer as BlobPart);
 		break;
 	}
 

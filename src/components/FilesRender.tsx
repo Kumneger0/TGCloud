@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { getGlobalTGCloudContext } from '@/lib/context';
 import { fileCacheDb } from '@/lib/dexie';
 import { getTgClient } from '@/lib/getTgClient';
 import { promiseToast } from '@/lib/notify';
@@ -14,30 +13,27 @@ import {
 	canWeAccessTheChannel,
 	delelteItem,
 	downloadMedia,
-	downloadVideoThumbnail,
 	formatBytes,
 	generateVideoThumbnail,
-	getBannerURL,
 	getCacheKey,
 	getMessage,
 	handleVideoDownload,
-	isDarkMode,
 	MediaCategory,
 	MediaSize,
 	removeCachedFile
 } from '@/lib/utils';
 import fluidPlayer from 'fluid-player';
-import { Play, Share2, TrashIcon, Minimize2 } from 'lucide-react';
+import { Minimize2, Play, Share2, TrashIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
+	Music2Icon as AudioIcon,
 	CloudDownload,
 	ImageIcon,
 	Trash2Icon,
-	VideoIcon,
-	Music2Icon as AudioIcon
+	VideoIcon
 } from './Icons/icons';
 import FileContextMenu from './fileContextMenu';
 import { FileModalView } from './fileModalView';
@@ -55,9 +51,10 @@ import {
 	AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 
+import { useGlobalStore } from '@/store/global-store';
+import React from 'react';
 import Swal from 'sweetalert2';
 import { TelegramClient } from 'telegram';
-import React from 'react';
 
 export function showSharableURL(url: string) {
 	Swal.fire({
@@ -96,14 +93,17 @@ function Files({
 	user,
 	files
 }: {
-	user: User;
+	user: User & {
+		telegramSession: string | undefined;
+		plan: NonNullable<User>['plan'];
+		botTokens: { token: string }[];
+	};
 	mimeType?: string;
 	files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
 	folders: NonNullable<GetAllFilesReturnType>['folders'] | undefined;
 	currentFolderId: string | null;
 }) {
-	const tGCloudGlobalContext = getGlobalTGCloudContext();
-	const sortBy = tGCloudGlobalContext?.sortBy;
+	const sortBy = useGlobalStore((state) => state.sortBy);
 	const [canWeAccessTGChannel, setCanWeAccessTGChannel] = useState<boolean | 'INITIAL'>('INITIAL');
 	const [client, setTelegramClient] = useState<TelegramClient | null>(null);
 
@@ -130,6 +130,10 @@ function Files({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [sortedFileKey, sortBy]);
 
+	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
+	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
+	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
+
 	const handleCheckboxChange = useCallback(
 		(file: (typeof sortedFiles)[number], checked: boolean) => {
 			if (checked) {
@@ -146,10 +150,20 @@ function Files({
 	useEffect(() => {
 		(async () => {
 			try {
+				const getTgClientArgs: Parameters<typeof getTgClient>[0] =
+					user.authType === 'user'
+						? {
+								authType: 'user',
+								stringSession: user.telegramSession ?? ''
+							}
+						: {
+								authType: 'bot',
+								botToken: user.botTokens?.[0].token,
+								setBotRateLimit
+							};
+
 				setIsConnecting(true);
-				const telegramClient = await getTgClient({
-					setBotRateLimit: tGCloudGlobalContext?.setBotRateLimit
-				});
+				const telegramClient = await getTgClient(getTgClientArgs);
 				if (!telegramClient) {
 					setIsError(true);
 					return;
@@ -173,7 +187,7 @@ function Files({
 		};
 	}, []);
 
-	if (tGCloudGlobalContext?.botRateLimit?.isRateLimited) {
+	if (botRateLimit?.isRateLimited) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
@@ -182,10 +196,9 @@ function Files({
 					</h2>
 					<p className="text-muted-foreground">
 						Oops! We&apos;ve sent too many requests to Telegram, and they&apos;ve asked us to pause
-						for a bit. Please come back in{' '}
-						{Math.ceil(tGCloudGlobalContext.botRateLimit?.retryAfter / 60)} minutes, and we&apos;ll
-						be good to go! If you don&apos;t want to wait, you can add a new bot token from the
-						visible profile menu, and we&apos;ll use that instead.
+						for a bit. Please come back in {Math.ceil(botRateLimit?.retryAfter / 60)} minutes, and
+						we&apos;ll be good to go! If you don&apos;t want to wait, you can add a new bot token
+						from the visible profile menu, and we&apos;ll use that instead.
 					</p>
 				</div>
 			</div>
@@ -205,7 +218,7 @@ function Files({
 		);
 	}
 
-	if (tGCloudGlobalContext?.isSwitchingFolder || isConnecting) {
+	if (isSwitchingFolder || isConnecting) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -780,8 +793,8 @@ function AudioMediaView({
 	const [duration, setDuration] = useState<number | null>(null);
 	const audioRef = useRef<HTMLAudioElement>(null);
 	const [blobURL, setBlobURL] = useState<string>('');
-	const tGCloudGlobalContext = getGlobalTGCloudContext();
-	const { setMiniPlayerAudio, miniPlayerAudio } = tGCloudGlobalContext ?? {};
+	const setMiniPlayerAudio = useGlobalStore((state) => state.setMiniPlayerAudio);
+	const miniPlayerAudio = useGlobalStore((state) => state.miniPlayerAudio);
 
 	useEffect(() => {
 		(async () => {

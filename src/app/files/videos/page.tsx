@@ -2,6 +2,7 @@ import { getFolderContents, requireUserAuthentication } from '@/actions';
 import { Dashboard } from '@/components/dashboard';
 import Files from '@/components/FilesRender';
 import { LoadingItems } from '@/components/loading-files';
+import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 export default async function Home(props: { searchParams: Promise<Record<string, string>> }) {
 	const searchParams = await props.searchParams;
@@ -17,11 +18,24 @@ export default async function Home(props: { searchParams: Promise<Record<string,
 	);
 	if (!folderContents) return null;
 
+	const cookieStore = await cookies();
+	const stringSession = cookieStore.get('telegramSession')?.value;
+
 	const { folders, files, totalFiles } = folderContents;
 	return (
-		<Dashboard currentFolderId={currentFolderId} folders={folders} total={totalFiles} user={user}>
+		<Dashboard
+			currentFolderId={currentFolderId}
+			folders={folders}
+			total={totalFiles}
+			user={{ ...user, telegramSession: stringSession || undefined, plan: user.plan }}
+		>
 			<Suspense fallback={<LoadingItems />}>
-				<Files files={files} folders={folders} user={user} currentFolderId={currentFolderId} />
+				<Files
+					files={files}
+					folders={folders}
+					user={{ ...user, telegramSession: stringSession || undefined, plan: user.plan }}
+					currentFolderId={currentFolderId}
+				/>
 			</Suspense>
 		</Dashboard>
 	);

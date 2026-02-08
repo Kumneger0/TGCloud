@@ -73,7 +73,7 @@ cp .env.example .env.development
 cp .env.example .env.production
 ```
 
-Edit both `.env.development` and `.env.production` and replace all placeholder values with your own credentials 
+Edit both `.env.development` and `.env.production` and replace all placeholder values with your own credentials
 
 4. Set up the database:
 

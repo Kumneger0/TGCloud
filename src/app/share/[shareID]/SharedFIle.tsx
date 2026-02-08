@@ -3,7 +3,13 @@ import { User } from '@/lib/types';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
-function SharedFile({ user, fileID }: { user: User; fileID: string }) {
+function SharedFile({
+	user,
+	fileID
+}: {
+	user: Omit<User, 'telegramSession' | 'botTokens'>;
+	fileID: string;
+}) {
 	const [url, setURL] = useState('');
 
 	useEffect(() => {

@@ -1,10 +1,8 @@
 'use client';
-import { getGlobalTGCloudContext } from '@/lib/context';
+import { useGlobalStore } from '@/store/global-store';
 import { Progress } from './ui/progress';
 export function UploadProgressOverlay() {
-	const tgCloudContext = getGlobalTGCloudContext();
-	if (!tgCloudContext) return null;
-	const progress = tgCloudContext.uploadProgress;
+	const progress = useGlobalStore((state) => state.uploadProgress);
 	if (!progress) return null;
 	const progressPercentage = Math.round(progress.progress * 100);
 

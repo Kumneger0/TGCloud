@@ -3,12 +3,12 @@ import { Inter } from 'next/font/google';
 import '../../patch-global-alert-polyfill';
 import './globals.css';
 
-import { ThemeProvider } from '@/components/theme-provider';
-const inter = Inter({ subsets: ['latin'] });
-import { Toaster } from 'react-hot-toast';
-import Providers, { CSPostHogProvider, TGCloudGlobalContextWrapper } from '@/lib/context';
 import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import RecentUpdate from '@/components/RecentUpdate';
+import { ThemeProvider } from '@/components/theme-provider';
+import Providers, { CSPostHogProvider } from '@/lib/context';
+import { Toaster } from 'react-hot-toast';
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
 	metadataBase: new URL('https://yourtgcloud.vercel.app/'),
@@ -63,11 +63,9 @@ export default async function RootLayout({
 							enableSystem
 							disableTransitionOnChange
 						>
-							<TGCloudGlobalContextWrapper>
-								<RecentUpdate />
-								{children}
-								<MiniAudioPlayer />
-							</TGCloudGlobalContextWrapper>
+							<RecentUpdate />
+							{children}
+							<MiniAudioPlayer />
 						</ThemeProvider>
 					</Providers>
 					<Toaster />
