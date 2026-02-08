@@ -104,50 +104,58 @@ export async function addToken(token: string) {
 	}
 }
 
-export async function saveTelegramCredentials({
-	accessHash,
-	channelId,
-	channelTitle,
-	session,
-	botToken
-}: {
-	session: string;
-	accessHash: string;
-	channelId: string;
-	channelTitle: string;
-	botToken?: string;
-}) {
-	if (!session) {
+type SaveTelegramCredentialsArgs =
+	| {
+			session: string;
+			accessHash: string;
+			channelId: string;
+			channelTitle: string;
+			authType: 'user';
+	  }
+	| {
+			accessHash: string;
+			channelId: string;
+			channelTitle: string;
+			botToken?: string;
+			authType: 'bot';
+	  };
+
+export async function saveTelegramCredentials(options: SaveTelegramCredentialsArgs) {
+	if (options.authType === 'user' && !options.session) {
 		throw new Error('Session is required ');
 	}
-	(await cookies()).set('telegramSession', session, {
-		maxAge: 60 * 60 * 24 * 365,
-		httpOnly: true,
-		secure: true
-	});
+
+	if (options.authType == 'user') {
+		(await cookies()).set('telegramSession', options.session, {
+			maxAge: 60 * 60 * 24 * 365,
+			httpOnly: true,
+			secure: true
+		});
+	}
+
 	const user = await getUser();
 
 	if (!user?.id) {
 		throw new Error('user needs to be logged in.');
 	}
 	try {
-		if (botToken) {
+		if (options.authType == 'bot') {
 			await db.insert(botTokens).values({
 				id: crypto.randomUUID(),
 				userId: user?.id,
-				token: botToken
+				token: options.botToken
 			});
 		}
 		const result = await db
 			.update(usersTable)
 			.set({
-				accessHash: accessHash,
-				channelId: channelId,
-				channelTitle: channelTitle
+				accessHash: options.accessHash,
+				channelId: options.channelId,
+				channelTitle: options.channelTitle
 			})
 			.where(eq(usersTable.id, user.id))
 			.returning();
-		return session;
+		return result;
 	} catch (error) {
 		console.error('Error while saving Telegram credentials:', error);
 		throw new Error('There was an error while saving Telegram credentials.');

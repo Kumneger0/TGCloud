@@ -42,7 +42,7 @@ export const UploadFiles = ({
 		if (botRateLimit.isRateLimited) return null;
 
 		const getTgClientArgs: Parameters<typeof getTgClient>[0] =
-			user.authType === 'user'
+			user.authType === 'user' && user.telegramSession
 				? {
 						authType: 'user',
 						stringSession: user.telegramSession ?? ''

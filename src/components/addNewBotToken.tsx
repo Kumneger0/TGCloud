@@ -1,19 +1,18 @@
 'use client';
+import { addToken, getUser, saveTelegramCredentials } from '@/actions';
 import { Button } from '@/components/ui/button';
+import { getTgClient } from '@/lib/getTgClient';
+import { useGlobalStore } from '@/store/global-store';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from './ui/dialog';
-import { getUser, addToken, saveTelegramCredentials } from '@/actions';
-import { getTgClient } from '@/lib/getTgClient';
-import { EntityLike } from 'telegram/define';
 import toast from 'react-hot-toast';
-import { useGlobalStore } from '@/store/global-store';
+import { EntityLike } from 'telegram/define';
+import { Dialog, DialogContent, DialogHeader, DialogTrigger } from './ui/dialog';
 
 export function AddNewBotTokenDialog() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [botToken, setBotToken] = useState('');
 	const [error, setError] = useState('');
-
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
 	return (
@@ -49,7 +48,7 @@ export function AddNewBotTokenDialog() {
 									if (!user || !user.id) return;
 									const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
 										authType: 'bot',
-										botToken: botToken,
+										botToken,
 										setBotRateLimit
 									};
 									const client = await getTgClient(getTgClientArgs);
@@ -79,7 +78,7 @@ export function AddNewBotTokenDialog() {
 											accessHash: user.accessHash!,
 											channelId: String(id),
 											channelTitle: user.channelTitle!,
-											session: 'user session'
+											authType: 'bot'
 										});
 										setIsOpen(false);
 										typeof window !== 'undefined' && window.location.reload();

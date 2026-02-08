@@ -13,7 +13,7 @@ type GetTgClientUserTypeArgs = {
 
 type GetTgClientBotTypeArgs = {
 	authType: 'bot';
-	botToken: string;
+	botToken?: string;
 	setBotRateLimit: (botRateLimit: { isRateLimited: boolean; retryAfter: number }) => void;
 };
 
@@ -51,7 +51,7 @@ export async function getTgClient(options: GetTgClientOptions) {
 	try {
 		localStorage.removeItem('GramJs:apiCache');
 		const client = new TelegramClient(
-			new StringSession(options.authType === 'user' ? options.stringSession : options.botToken),
+			new StringSession(options.authType === 'user' ? options.stringSession : ''),
 			env.NEXT_PUBLIC_TELEGRAM_API_ID,
 			env.NEXT_PUBLIC_TELEGRAM_API_HASH,
 			{ connectionRetries: 5 }
@@ -67,7 +67,6 @@ export async function getTgClient(options: GetTgClientOptions) {
 				botAuthToken: token
 			});
 		} catch (startError: unknown) {
-			console.error('startError', startError);
 			console.error('startError', startError);
 			const error = startError as { message?: string };
 			if (error?.message?.includes('A wait of')) {

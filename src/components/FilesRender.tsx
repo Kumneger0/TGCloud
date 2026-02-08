@@ -150,8 +150,8 @@ function Files({
 	useEffect(() => {
 		(async () => {
 			try {
-				const getTgClientArgs: Parameters<typeof getTgClient>[0] =
-					user.authType === 'user'
+				const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
+					user.authType === 'user' && user.telegramSession
 						? {
 								authType: 'user',
 								stringSession: user.telegramSession ?? ''
