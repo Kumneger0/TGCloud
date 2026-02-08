@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { getGlobalTGCloudContext } from '@/lib/context';
+import { getTgClient } from '@/lib/getTgClient';
 import { promiseToast } from '@/lib/notify';
 import { User } from '@/lib/types';
 import { formatBytes, uploadFiles } from '@/lib/utils';
@@ -8,18 +8,11 @@ import { Dispatch, SetStateAction, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Dropzone from 'react-dropzone';
 import { CloudUploadIcon, FileIcon, TrashIcon, UploadIcon, XIcon } from './Icons/icons';
-import { UploadProgressOverlay } from './uploadProgressOverlay';
-import { getTgClient } from '@/lib/getTgClient';
+import { useGlobalStore } from '@/store/global-store';
 
 interface DropedFile {
 	file: File;
 	id: string;
-}
-
-interface UploadProgress {
-	itemName: string;
-	itemIndex: number;
-	progress: number;
 }
 
 export const UploadFiles = ({
@@ -31,9 +24,11 @@ export const UploadFiles = ({
 }) => {
 	const router = useRouter();
 	const [dropedfiles, setFiles] = useState<DropedFile[]>([]);
-	const tgCloudContext = getGlobalTGCloudContext();
 	const searchParams = useSearchParams();
 	const folderId = searchParams?.get('folderId') ?? null;
+	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
+	const setUploadProgress = useGlobalStore((state) => state.setUploadProgress);
+	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
 	const handleDrop = (acceptedFiles: File[]) => {
 		const files = acceptedFiles.map((file) => ({
@@ -44,26 +39,38 @@ export const UploadFiles = ({
 	};
 
 	const handleSubmit = async (formData: FormData) => {
-		if (tgCloudContext?.botRateLimit.isRateLimited) return null;
-		const client = await getTgClient({ setBotRateLimit: tgCloudContext?.setBotRateLimit });
-		type UploadProgresFnType = NonNullable<typeof tgCloudContext>['setUploadProgress'];
+		if (botRateLimit.isRateLimited) return null;
+
+		const getTgClientArgs: Parameters<typeof getTgClient>[0] =
+			user.authType === 'user'
+				? {
+						authType: 'user',
+						stringSession: user.telegramSession ?? ''
+					}
+				: {
+						authType: 'bot',
+						botToken: user.botTokens?.[0].token,
+						setBotRateLimit
+					};
+
+		const client = await getTgClient(getTgClientArgs);
 
 		await promiseToast({
 			cb: () => {
 				setOpen(false);
-				return uploadFiles(formData, user, tgCloudContext?.setUploadProgress, client, folderId);
+				return uploadFiles(formData, user, setUploadProgress, client, folderId);
 			},
 			errMsg: 'We apologize, but there was an error uploading your files',
 			successMsg: 'File Uploaded',
 			loadingMsg: 'please wait',
 			position: 'top-right'
 		});
-		tgCloudContext?.setUploadProgress?.(undefined);
+		setUploadProgress(undefined);
 		setFiles([]);
 		router.refresh();
 	};
 
-	if (tgCloudContext?.botRateLimit.isRateLimited) return null;
+	if (botRateLimit.isRateLimited) return null;
 
 	return (
 		<>
@@ -82,7 +89,15 @@ export const UploadFiles = ({
 					}}
 				>
 					<Dropzone onDrop={handleDrop}>
-						{({ getRootProps, getInputProps, isDragActive }) => (
+						{({
+							getRootProps,
+							getInputProps,
+							isDragActive
+						}: {
+							getRootProps: () => React.HTMLAttributes<HTMLDivElement>;
+							getInputProps: () => React.InputHTMLAttributes<HTMLInputElement>;
+							isDragActive: boolean;
+						}) => (
 							<div
 								{...getRootProps()}
 								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${

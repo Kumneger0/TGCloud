@@ -15,7 +15,7 @@ function CustomLInk({
 
 	return (
 		<Link
-			onMouseOver={(e) => {
+			onMouseOver={() => {
 				if (!href.startsWith('/')) return;
 				router.prefetch(href);
 			}}

@@ -1,14 +1,13 @@
 'use client';
-import { getGlobalTGCloudContext } from '@/lib/context';
 import { formatBytes } from '@/lib/utils';
+import { useGlobalStore } from '@/store/global-store';
 import { FileAudioIcon, Pause, Play as PlayIcon, X } from 'lucide-react';
 import Image from 'next/image';
-import React, { ReactEventHandler, SyntheticEvent, useEffect, useRef, useState } from 'react';
+import React, { SyntheticEvent, useEffect, useRef, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
 
 const MiniAudioPlayer = React.memo(() => {
-	const tGCloudGlobalContext = getGlobalTGCloudContext();
-	const { miniPlayerAudio, setMiniPlayerAudio } = tGCloudGlobalContext ?? {};
+	const { miniPlayerAudio, setMiniPlayerAudio } = useGlobalStore();
 	const audioRef = useRef<HTMLAudioElement>(null);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [progress, setProgress] = useState(0);

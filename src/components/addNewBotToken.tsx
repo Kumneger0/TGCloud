@@ -7,11 +7,14 @@ import { getUser, addToken, saveTelegramCredentials } from '@/actions';
 import { getTgClient } from '@/lib/getTgClient';
 import { EntityLike } from 'telegram/define';
 import toast from 'react-hot-toast';
+import { useGlobalStore } from '@/store/global-store';
 
 export function AddNewBotTokenDialog() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [botToken, setBotToken] = useState('');
 	const [error, setError] = useState('');
+
+	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
 	return (
 		<>
@@ -44,7 +47,12 @@ export function AddNewBotTokenDialog() {
 								try {
 									const user = await getUser();
 									if (!user || !user.id) return;
-									const client = await getTgClient({ botToken });
+									const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
+										authType: 'bot',
+										botToken: botToken,
+										setBotRateLimit
+									};
+									const client = await getTgClient(getTgClientArgs);
 									if (!client) {
 										toast.error('Invalid bot token');
 										return;

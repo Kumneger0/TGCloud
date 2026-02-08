@@ -1,4 +1,4 @@
-import { getFolderContents } from '@/actions';
+import { getFolderContents, getUser } from '@/actions';
 import { db } from '@/db';
 
 export interface ChannelDetails {
@@ -117,7 +117,9 @@ export type FilesData = {
 	category: string;
 }[];
 
-export type User = Awaited<ReturnType<typeof db.query.usersTable.findFirst>>;
+export type User = Awaited<ReturnType<typeof getUser>> & {
+	telegramSession: string | undefined;
+};
 
 export interface MessageMediaPhoto {
 	flags: number;
