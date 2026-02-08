@@ -25,7 +25,7 @@ type GlobalStoreType = {
 	sortBy: SortBy;
 	setSortBy: (sortBy: SortBy) => void;
 	isSwitchingFolder: boolean;
-	startPathSwitching: (value: boolean) => void;
+	setIsSwitchingFolder: (value: boolean) => void;
 	uploadProgress: UploadProgress | undefined;
 	setUploadProgress: (uploadProgress: UploadProgress | undefined) => void;
 	telegramSession: string | undefined;
@@ -43,7 +43,7 @@ export const useGlobalStore = create<GlobalStoreType>((set) => ({
 	sortBy: 'name',
 	setSortBy: (sortBy: SortBy) => set({ sortBy }),
 	isSwitchingFolder: false,
-	startPathSwitching: (value: boolean) => set({ isSwitchingFolder: value }),
+	setIsSwitchingFolder: (value: boolean) => set({ isSwitchingFolder: value }),
 	uploadProgress: undefined,
 	setUploadProgress: (uploadProgress: UploadProgress | undefined) => set({ uploadProgress }),
 	telegramSession: undefined,

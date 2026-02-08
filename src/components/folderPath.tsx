@@ -45,10 +45,10 @@ export default function StoragePage({
 
 	const [pending, startTransition] = useTransition();
 
-	const startPathSwitching = useGlobalStore((state) => state.startPathSwitching);
+	const setIsSwitchingFolder = useGlobalStore((state) => state.setIsSwitchingFolder);
 
 	useEffect(() => {
-		startPathSwitching(pending);
+		setIsSwitchingFolder(pending);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pending]);
 

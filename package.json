@@ -19,7 +19,7 @@
 	},
 	"dependencies": {
 		"@bprogress/next": "^3.2.12",
-		"@next/env": "15.3.3",
+		"@next/env": "16.1.6",
 		"@radix-ui/react-accordion": "^1.2.12",
 		"@radix-ui/react-alert-dialog": "^1.1.15",
 		"@radix-ui/react-avatar": "^1.1.11",
@@ -79,7 +79,7 @@
 		"@types/react": "19.1.8",
 		"@types/react-dom": "19.1.6",
 		"cross-env": "^7.0.3",
-		"drizzle-kit": "^0.22.8",
+		"drizzle-kit": "^0.31.8",
 		"eslint": "^8.57.1",
 		"eslint-config-next": "15.0.0",
 		"prettier": "^3.8.1",
