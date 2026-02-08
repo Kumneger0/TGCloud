@@ -20,7 +20,7 @@ import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { useGlobalStore } from '@/store/global-store';
 
 interface Result {
@@ -289,11 +289,11 @@ export default function Component({ user }: Props) {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center py-10">
-			<Card className="w-full max-w-6xl mx-auto">
+		<div className="min-h-screen flex items-center py-10 bg-background text-foreground">
+			<Card className="w-full max-w-6xl mx-auto border-border bg-card text-card-foreground shadow-sm">
 				<CardHeader>
-					<CardTitle>Connect Telegram</CardTitle>
-					<CardDescription>Choose how you want to connect TG Cloud to Telegram.</CardDescription>
+					<CardTitle className="text-2xl">Connect Telegram</CardTitle>
+					<CardDescription className="text-muted-foreground">Choose how you want to connect TG Cloud to Telegram.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Tabs
@@ -301,239 +301,222 @@ export default function Component({ user }: Props) {
 						value={activeTab}
 						onValueChange={(val) => setActiveTab(val as 'bot' | 'user')}
 					>
-						<TabsList className="grid w-full grid-cols-2 mb-8">
-							<TabsTrigger value="bot">Bot Connection</TabsTrigger>
-							<TabsTrigger value="user">User Account Connection (Recommended)</TabsTrigger>
+						<TabsList className="grid w-full grid-cols-2 mb-8 bg-muted">
+							<TabsTrigger value="user" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">User Account Connection (Recommended)</TabsTrigger>
+							<TabsTrigger value="bot" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">Bot Connection</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="bot" className="space-y-6">
-							<Alert className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/10 dark:border-yellow-800">
+							<Alert className="bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-900/20 dark:border-yellow-900/30 dark:text-yellow-200">
 								<AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-								<AlertTitle className="text-yellow-800 dark:text-yellow-300">
+								<AlertTitle>
 									Limitation Warning
 								</AlertTitle>
-								<AlertDescription className="text-yellow-700 dark:text-yellow-300">
+								<AlertDescription className="text-yellow-700 dark:text-yellow-300/90">
 									Telegram bots have lower rate limits and file size restrictions compared to user
 									accounts. You might face issues with large files or frequent uploads.
 								</AlertDescription>
 							</Alert>
-							<div className="flex flex-col lg:flex-row gap-6">
-								<div className="flex-1 space-y-4">
-									<div className="space-y-2">
-										<h3 className="font-semibold">Step 1: Create and Set Up Your Channel</h3>
-										<p className="text-sm text-gray-600">
-											Create a private Telegram channel if you haven&apos;t already.
+
+							<div className="grid gap-6 md:grid-cols-2">
+								<div className="space-y-6">
+									{/* Step 1 */}
+									<div className="border border-border rounded-lg p-4 bg-card">
+										<h3 className="font-semibold flex items-center gap-2 mb-2 text-foreground">
+											<span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+												1
+											</span>
+											Create Channel
+										</h3>
+										<p className="text-sm text-muted-foreground mb-2">
+											Create a new <strong>Private Channel</strong> on Telegram.
 										</p>
 									</div>
-									<div className="space-y-2">
-										<h3 className="font-semibold">Step 2: Choose Bot</h3>
+
+									{/* Step 2 */}
+									<div className="border border-border rounded-lg p-4 bg-card">
+										<h3 className="font-semibold flex items-center gap-2 mb-4 text-foreground">
+											<span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+												2
+											</span>
+											Configure Bot
+										</h3>
+										
 										<RadioGroup
 											defaultValue="default"
 											onValueChange={(value) => setSelectedBot(value as 'default' | 'custom')}
-											className="space-y-2"
+											className="space-y-3 mb-4"
 										>
-											<div className="flex items-center space-x-2">
-												<RadioGroupItem value="default" id="default" />
-												<Label htmlFor="default">
-													<a
-														href="https://t.me/tgcloudet2024_bot?start=setup_tgcloud"
-														target="_blank"
-														rel="noopener noreferrer"
-														className="text-blue-500 underline"
-													>
-														Use TGCloud Bot
-													</a>
-													<span className="block text-sm text-gray-600">
-														Our default bot with standard features
-													</span>
+											<div className="flex items-center space-x-2 border border-border p-3 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-colors">
+												<RadioGroupItem value="default" id="default" className="border-primary text-primary" />
+												<Label htmlFor="default" className="flex-1 cursor-pointer text-foreground">
+													<span className="font-medium">Use TGCloud Bot</span>
+													<p className="text-xs text-muted-foreground mt-1">
+														Quick setup, uses our shared bot.
+													</p>
 												</Label>
 											</div>
-											<div className="flex items-center space-x-2">
-												<RadioGroupItem value="custom" id="custom" />
-												<Label htmlFor="custom">
-													Use Custom Bot
-													<span className="block text-sm text-gray-600">Recommended</span>
+											<div className="flex items-center space-x-2 border border-border p-3 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-colors">
+												<RadioGroupItem value="custom" id="custom" className="border-primary text-primary" />
+												<Label htmlFor="custom" className="flex-1 cursor-pointer text-foreground">
+													<span className="font-medium">Use Custom Bot</span>
+													<span className="ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full dark:bg-green-900/40 dark:text-green-300">Recommended</span>
+													<p className="text-xs text-muted-foreground mt-1">
+														Better for privacy and control.
+													</p>
 												</Label>
 											</div>
 										</RadioGroup>
 
-										<div className="mt-4 space-y-2">
-											<p className="text-sm text-gray-600">
-												To use {selectedBot === 'custom' ? 'your own bot' : 'TGCloud Bot'}:
-												<ol className="list-decimal ml-5 mt-2">
-													{selectedBot === 'custom' && (
-														<li>
-															Create a new bot with{' '}
-															<a
-																href="https://t.me/BotFather"
-																target="_blank"
-																rel="noopener noreferrer"
-																className="text-blue-600 hover:underline"
-															>
-																@BotFather
-															</a>
-														</li>
-													)}
-													<li>
-														{selectedBot === 'custom'
-															? 'Copy the bot token provided'
-															: 'Add the bot as admin'}
-													</li>
-													<li>Add the bot to your channel as admin with posting permissions</li>
-													<li>
-														{selectedBot === 'custom' ? 'Paste the bot token below' : 'Done!'}
-													</li>
-												</ol>
-											</p>
+										<div className="text-sm space-y-3 bg-muted/50 p-3 rounded-md border border-border/50 text-foreground">
+											{selectedBot === 'custom' ? (
+												<>
+													<p>1. Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-primary hover:underline">@BotFather</a></p>
+													<p>2. Send command <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs border border-border">/newbot</code></p>
+													<p>3. Follow instructions to get your <strong>Bot Token</strong></p>
+													<p>4. <strong>Important:</strong> Add your new bot to your channel as an Admin.</p>
+												</>
+											) : (
+												<>
+													<p>1. Open your channel info</p>
+													<p>2. Add <a href="https://t.me/tgcloudet2024_bot" target="_blank" rel="noreferrer" className="text-primary hover:underline">@tgcloudet2024_bot</a> as an Admin</p>
+												</>
+											)}
 										</div>
 									</div>
-									<div className="space-y-2">
-										<h3 className="font-semibold">Step 3: Get Channel ID</h3>
-										<p className="text-sm text-gray-600">
-											1. Forward any message from your channel to{' '}
-											<a
-												href="https://t.me/RawDataBot"
-												target="_blank"
-												rel="noopener noreferrer"
-												className="text-blue-600 hover:underline"
-											>
-												@RawDataBot
-											</a>
-											<br />
-											2. Look for the &quot;id&quot; field in the response (format: -100xxxxxxxxxx)
-											<br />
-											3. Copy and paste this ID below
+
+									{/* Step 3 */}
+									<div className="border border-border rounded-lg p-4 bg-card">
+										<h3 className="font-semibold flex items-center gap-2 mb-2 text-foreground">
+											<span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
+												3
+											</span>
+											Get Channel ID
+										</h3>
+										<p className="text-sm text-muted-foreground mb-3">
+											The hardest part! Follow carefully:
 										</p>
-										<details className="mt-2">
-											<summary className="text-sm text-blue-600 cursor-pointer hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-												View example response from RawDataBot
+										<ol className="text-sm space-y-2 list-decimal ml-4 text-muted-foreground">
+											<li>Forward <strong>any message</strong> from your channel to <a href="https://t.me/RawDataBot" target="_blank" rel="noreferrer" className="text-primary hover:underline">@RawDataBot</a></li>
+											<li>
+												Look for the code block in the response starting with <code className="bg-muted px-1 rounded text-foreground">&quot;forward_from_chat&quot;</code>
+											</li>
+											<li>
+												Copy the <code className="bg-muted px-1 rounded text-foreground">id</code> (starts with -100)
+											</li>
+										</ol>
+
+										<details className="mt-3 group">
+											<summary className="text-xs text-primary cursor-pointer hover:underline select-none font-medium">
+												Show me where to find the ID
 											</summary>
-											<div className="mt-2">
-												<pre className="p-4 bg-gray-100 dark:bg-gray-800 rounded-md text-xs overflow-x-auto whitespace-pre text-gray-800 dark:text-gray-200">
-													{`{
-    "update_id": 846844456,
-    "message": {
-        "message_id": 3123678,
-        "from": {
-            "id": 5660513633,
-            "is_bot": false,
-            "first_name": "John Doe",
-            "username": "johndoe123",
-            "language_code": "en"
-        },
-        "chat": {
-            "id": 5660513633,
-            "first_name": "John Doe",
-            "username": "johndoe123",
-            "type": "private"
-        },
-        "date": 1732815925,
-        "forward_origin": {
-            "type": "channel",
-            "chat": {
-                "id": -1002254371734,  ⬅️ Copy this channel ID
-                "title": "hfh",
-                "type": "channel"
-            },
-            "message_id": 2,
-            "date": 1732815917
-        },
-        "forward_from_chat": {
-            "id": -1002254371734,
-            "title": "hfh",
-            "type": "channel"
-        },
-        "forward_from_message_id": 2,
-        "forward_date": 1732815917,
-        "text": "ddd"
-    }
-}`}
-												</pre>
+											<div className="mt-2 p-3 bg-zinc-950 rounded-md text-xs font-mono text-zinc-300 overflow-x-auto border border-zinc-800 shadow-inner">
+<pre>{`{
+  "message": {
+    ...
+    "forward_from_chat": {
+        "id": -1001234567890,  <-- COPY THIS
+        "title": "My Cloud",
+        "type": "channel"
+    },
+    ...
+  }
+}`}</pre>
 											</div>
 										</details>
 									</div>
 								</div>
 
-								<div className="flex-1 lg:border-l lg:pl-6">
-									<div className="max-w-md space-y-6">
-										<div>
-											<h3 className="text-lg font-semibold mb-4">Enter Your Channel ID</h3>
-											<form
-												action={async (formData) => {
-													const channelId = formData.get('channelId');
-													const botToken = formData.get('botToken');
+								<div className="flex flex-col h-full">
+									<div className="sticky top-6">
+										<h3 className="text-lg font-semibold mb-4 text-foreground">Final Step: Connect</h3>
+										<form
+											action={async (formData) => {
+												const channelId = formData.get('channelId');
+												const botToken = formData.get('botToken');
 
-													if (!channelId) return;
+												if (!channelId) return;
 
-													if (selectedBot === 'custom' && !botToken) {
-														toast.error('Please enter your bot token');
-														return;
-													}
+												if (selectedBot === 'custom' && !botToken) {
+													toast.error('Please enter your bot token');
+													return;
+												}
 
-													const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
-														authType: 'bot',
-														botToken: botToken as string,
-														setBotRateLimit
-													};
+												const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
+													authType: 'bot',
+													botToken: botToken as string,
+													setBotRateLimit
+												};
 
-													try {
-														const client = await getTgClient(getTgClientArgs);
-														const dialogs = await client?.getInputEntity(
-															String(channelId) as EntityLike
-														);
-														const id = (dialogs as unknown as { channelId: string })?.channelId;
-														const accessHash = (dialogs as unknown as { accessHash: string })
-															?.accessHash;
-														const sentMessage = await client?.sendMessage(channelId as EntityLike, {
-															message:
-																' Yay! You have successfully connected your Telegram channel with our platform! '
+												try {
+													const client = await getTgClient(getTgClientArgs);
+													const dialogs = await client?.getInputEntity(
+														String(channelId) as EntityLike
+													);
+													const id = (dialogs as unknown as { channelId: string })?.channelId;
+													const accessHash = (dialogs as unknown as { accessHash: string })
+														?.accessHash;
+													const sentMessage = await client?.sendMessage(channelId as EntityLike, {
+														message:
+															' Yay! You have successfully connected your Telegram channel with our platform! '
+													});
+													if (sentMessage?.id) {
+														await saveTelegramCredentials({
+															channelId: String(id) as string,
+															accessHash: String(accessHash),
+															channelTitle: '',
+															botToken: botToken as string,
+															authType: 'bot'
 														});
-														if (sentMessage?.id) {
-															await saveTelegramCredentials({
-																channelId: String(id) as string,
-																accessHash: String(accessHash),
-																channelTitle: '',
-																botToken: botToken as string,
-																authType: 'bot'
-															});
-															toast.success('Channel Connected Successfully');
-															typeof window !== 'undefined' && window.location.replace('/files');
-														}
-													} catch (err) {
-														toast.error('Failed to connect channel');
+														toast.success('Channel Connected Successfully');
+														typeof window !== 'undefined' && window.location.replace('/files');
 													}
-												}}
-												className="space-y-4"
-											>
-												<div className="space-y-2">
-													<Label htmlFor="channelId">Channel ID</Label>
+												} catch (err) {
+													toast.error('Failed to connect channel. Check ID and Bot permissions.');
+													console.error(err);
+												}
+											}}
+											className="space-y-4 bg-card border border-border rounded-lg p-6 shadow-sm"
+										>
+											<div className="space-y-2">
+												<Label htmlFor="channelId" className="text-foreground">Channel ID</Label>
+												<Input
+													name="channelId"
+													id="channelId"
+													type="text"
+													placeholder="-1001234567890"
+													required
+													className="font-mono bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
+												/>
+												<p className="text-[10px] text-muted-foreground">
+													Must start with -100
+												</p>
+											</div>
+											
+											{selectedBot === 'custom' && (
+												<div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+													<label htmlFor="botToken" className="text-sm font-medium text-foreground">
+														Bot Token
+														<span className="text-destructive ml-1">*</span>
+													</label>
 													<Input
-														name="channelId"
-														id="channelId"
 														type="text"
-														placeholder="-1001234567890"
+														id="botToken"
+														name="botToken"
+														placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+														className="font-mono text-sm bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
 														required
 													/>
+													<p className="text-[10px] text-muted-foreground">
+														From @BotFather
+													</p>
 												</div>
-												{selectedBot === 'custom' && (
-													<div className="space-y-2">
-														<label htmlFor="botToken" className="text-sm font-medium">
-															Bot Token
-															<span className="text-red-500">*</span>
-														</label>
-														<Input
-															type="text"
-															id="botToken"
-															name="botToken"
-															placeholder="Enter your bot token from @BotFather"
-															className="w-full"
-															required
-														/>
-													</div>
-												)}
+											)}
+											
+											<div className="pt-2">
 												<ConnectChannelButton />
-											</form>
-										</div>
+											</div>
+										</form>
 									</div>
 								</div>
 							</div>
@@ -541,50 +524,41 @@ export default function Component({ user }: Props) {
 
 						<TabsContent value="user" className="space-y-6 max-w-2xl mx-auto">
 							<Alert
-								variant="destructive"
-								className="border-red-500/50 bg-red-50 dark:bg-red-900/10"
+								className="border-primary/20 bg-primary/5 text-foreground"
 							>
-								<AlertTriangle className="h-4 w-4" />
+								<ShieldCheck className="h-4 w-4 text-primary" />
 								<AlertTitle className="text-lg font-bold mb-2">
-									Warning: Account Safety Risk
+									Recommended Security Steps:
 								</AlertTitle>
-								<AlertDescription className="space-y-3 text-sm">
-									<p>
-										Connecting a personal Telegram account has inherent risks. Telegram may
-										temporarily or permanently ban accounts that show automated behavior.
-									</p>
-									<div className="font-semibold mt-2">
-										To protect your main account, you MUST follow these steps:
-									</div>
+								<AlertDescription className="space-y-3 text-sm text-muted-foreground">
 									<ul className="list-disc pl-5 space-y-1">
 										<li>
-											Use a <span className="font-bold">secondary Telegram account</span> for this
-											connection. Do NOT use your main personal account.
+											Use a <span className="font-bold text-foreground">secondary Telegram account</span> for this
+											connection to keep your main account private.
 										</li>
 										<li>Create the channel using your secondary account.</li>
 										<li>
-											Add your <span className="font-bold">main account as an admin</span> to this
+											Add your <span className="font-bold text-foreground">main account as an admin</span> to this
 											channel.
 										</li>
 										<li>
-											<span className="font-bold">Transfer channel ownership</span> to your main
+											<span className="font-bold text-foreground">Transfer channel ownership</span> to your main
 											account.
 										</li>
 									</ul>
-									<p className="mt-2 text-xs opacity-90">
-										This ensures that even if the secondary account connected to TG Cloud is banned,
-										you will retain access to your files through your main account. We are not
-										responsible for any account bans.
+									<p className="mt-3 text-xs opacity-90 italic">
+										This setup ensures that even if your secondary account gets banned, 
+										you can still access all your files through your main account.
 									</p>
 								</AlertDescription>
 							</Alert>
 
-							<Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/10 dark:border-blue-800">
+							<Alert className="bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-900/10 dark:border-blue-800/50 dark:text-blue-200">
 								<Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-								<AlertTitle className="text-blue-800 dark:text-blue-300">
+								<AlertTitle>
 									Note on Exclusivity
 								</AlertTitle>
-								<AlertDescription className="text-blue-700 dark:text-blue-300">
+								<AlertDescription className="text-blue-800 dark:text-blue-300/90">
 									You can only use one connection method at a time. If you connect via User Account,
 									you don&apos;t need to use the Bot connection, and vice versa.
 								</AlertDescription>
