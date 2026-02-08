@@ -33,19 +33,8 @@ export async function Dashboard({
 	folders: NonNullable<GetAllFilesReturnType>['folders'] | undefined;
 	currentFolderId: string | null;
 }) {
-	const calculateRemainingDays = (subscriptionDate: string) => {
-		const currentDate = new Date();
-		const expirationDate = new Date(subscriptionDate);
-		const differenceInTime = expirationDate.getTime() - currentDate.getTime();
-		const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
-		return differenceInDays;
-	};
-
 	const foldersHierarchy = await getFolderHierarchy(user?.id as string);
 	const allFolders = await allfolders(user?.id as string);
-
-	const isSubscribedToPro = user?.isSubscribedToPro;
-	const subscriptionDate = user?.subscriptionDate;
 
 	return (
 		<>

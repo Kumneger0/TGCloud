@@ -181,7 +181,8 @@ export default function Component({ user }: Props) {
 					session: tgUserSession,
 					accessHash: user.accessHash,
 					channelId: user.channelId,
-					channelTitle: user.channelTitle
+					channelTitle: user.channelTitle,
+					authType: 'user'
 				});
 				posthog.capture('userTelegramAccountConnect', { property: user.email });
 				router.push('/files');
@@ -203,7 +204,8 @@ export default function Component({ user }: Props) {
 					session: tgUserSession,
 					accessHash,
 					channelId: id,
-					channelTitle
+					channelTitle,
+					authType: 'user'
 				});
 
 				window.location.href = '/files';
@@ -490,9 +492,9 @@ export default function Component({ user }: Props) {
 															await saveTelegramCredentials({
 																channelId: String(id) as string,
 																accessHash: String(accessHash),
-																session: 'this is test session',
 																channelTitle: '',
-																botToken: botToken as string
+																botToken: botToken as string,
+																authType: 'bot'
 															});
 															toast.success('Channel Connected Successfully');
 															typeof window !== 'undefined' && window.location.replace('/files');
