@@ -9,7 +9,7 @@ import { errorToast } from '@/lib/notify';
 import { EntityLike } from 'telegram/define';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -143,9 +143,19 @@ export default function Component({ user }: Props) {
 	const [isUserLoading, setIsUserLoading] = useState(false);
 
 	const session = useGlobalStore((state) => state.telegramSession);
-	const client = getTgClient({ stringSession: session ?? '', authType: 'user' });
-
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
+
+	const clientPromiseRef = useRef<ReturnType<typeof getTgClient> | null>(null);
+	
+	const getClient = useCallback(async () => {
+		if (!clientPromiseRef.current) {
+			clientPromiseRef.current = getTgClient({ 
+				stringSession: session ?? '', 
+				authType: 'user' 
+			});
+		}
+		return await clientPromiseRef.current;
+	}, [session]);
 
 	async function connectTelegramUser() {
 		try {
@@ -160,7 +170,7 @@ export default function Component({ user }: Props) {
 				}
 			}
 
-			const clientInstance = await client;
+			const clientInstance = await getClient();
 			if (!clientInstance) {
 				toast.error('Failed to initialize Telegram client');
 				return;
@@ -184,7 +194,7 @@ export default function Component({ user }: Props) {
 					channelTitle: user.channelTitle,
 					authType: 'user'
 				});
-				posthog.capture('userTelegramAccountConnect', { property: user.email });
+				posthog.capture('userTelegramAccountConnect', { userId: user.id });
 				router.push('/files');
 				return;
 			}
@@ -222,7 +232,7 @@ export default function Component({ user }: Props) {
 
 	async function loginInTelegram() {
 		try {
-			const clientInstance = await client;
+			const clientInstance = await getClient();
 			if (!clientInstance) return;
 
 			await clientInstance?.start({
