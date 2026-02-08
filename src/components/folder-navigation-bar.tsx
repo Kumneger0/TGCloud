@@ -50,7 +50,7 @@ export default function FolderNavigationBar({
 	const [pending, startTransition] = useTransition();
 
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
-	const startPathSwitching = useGlobalStore((state) => state.startPathSwitching);
+	const setIsSwitchingFolder = useGlobalStore((state) => state.setIsSwitchingFolder);
 
 	const router = useRouter();
 	const pathname = usePathname();
@@ -66,7 +66,7 @@ export default function FolderNavigationBar({
 	};
 
 	useEffect(() => {
-		startPathSwitching(pending);
+		setIsSwitchingFolder(pending);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pending]);
 

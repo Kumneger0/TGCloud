@@ -259,11 +259,15 @@ export default function Component({ user }: Props) {
 
 			const result = res as Result;
 
-			if (result?.chats?.[0].id) {
+			const chat = Array.isArray(result?.chats) && result.chats.length > 0 
+				? result.chats[0] 
+				: undefined;
+
+			if (chat?.id && chat?.accessHash) {
 				return {
 					channelTitle,
-					id: result.chats?.[0].id,
-					accessHash: result.chats?.[0].accessHash!
+					id: chat.id,
+					accessHash: chat.accessHash
 				};
 			}
 		} catch (err) {

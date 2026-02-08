@@ -125,7 +125,7 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 		throw new Error('Session is required ');
 	}
 
-	if (options.authType == 'user') {
+	if (options.authType === 'user') {
 		(await cookies()).set('telegramSession', options.session, {
 			maxAge: 60 * 60 * 24 * 365,
 			httpOnly: true,
@@ -139,7 +139,7 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 		throw new Error('user needs to be logged in.');
 	}
 	try {
-		if (options.authType == 'bot') {
+		if (options.authType === 'bot') {
 			await db.insert(botTokens).values({
 				id: crypto.randomUUID(),
 				userId: user?.id,
