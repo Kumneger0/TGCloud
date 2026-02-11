@@ -1,3 +1,4 @@
+import { streamVideoToMediaSource } from '@/lib/video-stream';
 import { uploadFile } from '@/actions';
 import { fileCacheDb } from '@/lib/dexie';
 import Message, { MessageMediaPhoto } from '@/lib/types';
@@ -203,10 +204,10 @@ export async function uploadFiles(
 
 			const result = await client.sendFile(entity, {
 				file: toUpload,
-				forceDocument: false
+				forceDocument: true
 			});
 
-			const uploadToDbResult = await uploadFile({
+			await uploadFile({
 				fileName: file.name,
 				mimeType: file.type,
 				size: BigInt(file.size),
@@ -426,7 +427,7 @@ export const handleVideoDownload = async (
 ) => {
 	for await (const buffer of client.iterDownload({
 		file: media as unknown as Api.TypeMessageMedia,
-		requestSize: 3 * 1024 * 1024
+		requestSize: 512 * 1024
 	})) {
 		const blob = new Blob([buffer as BlobPart]);
 		const url = URL.createObjectURL(blob);

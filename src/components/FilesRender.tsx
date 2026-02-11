@@ -1,4 +1,5 @@
 'use client';
+import { streamVideoToMediaSource } from '@/lib/video-stream';
 import { deleteChannelDetail, deleteFile, shareFile } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -634,27 +635,7 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 	);
 }
 
-function getVideoCodec(mimeType: string) {
-	let mimeCodec: string;
 
-	switch (mimeType) {
-		case 'video/webm':
-			mimeCodec = 'video/webm; codecs="vp9,opus"';
-			break;
-		case 'video/mp4':
-			mimeCodec = 'video/mp4; codecs="avc1.64001f, mp4a.40.2"';
-			break;
-		case 'video/x-msvideo':
-			mimeCodec = 'video/avi; codecs="avc1.64001f, mp4a.40.2"';
-			break;
-		case 'video/x-matroska':
-			mimeCodec = 'video/x-matroska; codecs="avc1.64001f, mp4a.40.2"';
-			break;
-		default:
-			mimeCodec = 'video/mp4; codecs="avc1.64001f, mp4a.40.2"';
-	}
-	return mimeCodec;
-}
 
 const VideoMediaView = ({
 	fileData,
@@ -667,7 +648,7 @@ const VideoMediaView = ({
 }) => {
 	let self = useRef<HTMLVideoElement>(null);
 	const [url, setURL] = useState<string>();
-	const playerRef = useRef<FluidPlayerInstance>(undefined);
+	// const playerRef = useRef<FluidPlayerInstance>(undefined);
 
 	useEffect(() => {
 		(async () => {
@@ -685,25 +666,30 @@ const VideoMediaView = ({
 			});
 
 			await withTelegramConnection(client, async (client) => {
-				await handleVideoDownload(client, message as Message['media'], setURL);
+				await streamVideoToMediaSource(
+					client,
+					message as Message['media'],
+					fileData.mimeType,
+					setURL
+				);
 			});
 		})();
 
-		if (!playerRef.current) {
-			playerRef.current = fluidPlayer(self.current!, {
-				layoutControls: {
-					allowDownload: true,
-					miniPlayer: {
-						autoToggle: true,
-						enabled: true,
-						position: 'bottom right',
-						height: 200,
-						width: 300,
-						placeholderText: fileData.fileName
-					}
-				}
-			});
-		}
+		// if (!playerRef.current) {
+		// 	playerRef.current = fluidPlayer(self.current!, {
+		// 		layoutControls: {
+		// 			allowDownload: true,
+		// 			miniPlayer: {
+		// 				autoToggle: true,
+		// 				enabled: true,
+		// 				position: 'bottom right',
+		// 				height: 200,
+		// 				width: 300,
+		// 				placeholderText: fileData.fileName
+		// 			}
+		// 		}
+		// 	});
+		// }
 	}, []);
 
 	return (
