@@ -79,7 +79,7 @@ async function getCode() {
     `,
 		inputAttributes: {
 			inputmode: 'numeric',
-			pattern: '[0-9]{6}'
+			pattern: '[0-9]{5}'
 		},
 		showCancelButton: true,
 		confirmButtonColor: '#000000',
