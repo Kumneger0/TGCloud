@@ -79,7 +79,7 @@ async function getCode() {
     `,
 		inputAttributes: {
 			inputmode: 'numeric',
-			pattern: '[0-9]{6}'
+			pattern: '[0-9]{5}'
 		},
 		showCancelButton: true,
 		confirmButtonColor: '#000000',
@@ -293,8 +293,7 @@ export default function Component({ user }: Props) {
 			} else {
 				Swal.fire({
 					title: 'Failed to create channel',
-					//@ts-expect-error
-					text: err?.message! ?? 'There was an error',
+					text: (err instanceof Error ? err.message : null) ?? 'There was an error',
 					timer: 3000,
 					icon: 'error'
 				});
