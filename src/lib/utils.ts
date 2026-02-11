@@ -228,7 +228,7 @@ export async function uploadFiles(
 	}
 }
 
-export async function delelteItem(
+export async function deleteItem(
 	user: User,
 	postId: number | string | (string | number)[],
 	client: TelegramClient | undefined
@@ -244,27 +244,18 @@ export async function delelteItem(
 		const channelId = user?.channelId!.startsWith('-100')
 			? user?.channelId!
 			: `-100${user?.channelId!}`;
-		const entity = await client.getInputEntity(channelId);
 
-		const deleteMediaStatus = await client.deleteMessages(
+		const entity = await client.getInputEntity(channelId);
+		const affectedMessages = await client.deleteMessages(
 			entity,
 			Array.isArray(postId) ? postId.map(Number) : [Number(postId)],
 			{
 				revoke: true
 			}
 		);
-		return deleteMediaStatus;
+		return affectedMessages;
 	} catch (err) {
-		if (err instanceof Error) {
-			throw new Error(err.message);
-		}
-		if (err instanceof TypeNotFoundError) {
-			throw new Error(err.message);
-		}
-		if (err && typeof err == 'object' && 'message' in err) {
-			throw new Error(err.message as string);
-		}
-		return null;
+		throw err
 	} finally {
 		await client.disconnect();
 	}
