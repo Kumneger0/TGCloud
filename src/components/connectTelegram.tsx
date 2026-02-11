@@ -146,12 +146,12 @@ export default function Component({ user }: Props) {
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
 	const clientPromiseRef = useRef<ReturnType<typeof getTgClient> | null>(null);
-	
+
 	const getClient = useCallback(async () => {
 		if (!clientPromiseRef.current) {
-			clientPromiseRef.current = getTgClient({ 
-				stringSession: session ?? '', 
-				authType: 'user' 
+			clientPromiseRef.current = getTgClient({
+				stringSession: session ?? '',
+				authType: 'user'
 			});
 		}
 		return await clientPromiseRef.current;
@@ -269,8 +269,8 @@ export default function Component({ user }: Props) {
 
 			const result = res as Result;
 
-			const chat = Array.isArray(result?.chats) && result.chats.length > 0 
-				? result.chats[0] 
+			const chat = Array.isArray(result?.chats) && result.chats.length > 0
+				? result.chats[0]
 				: undefined;
 
 			if (chat?.id && chat?.accessHash) {
@@ -355,7 +355,7 @@ export default function Component({ user }: Props) {
 											</span>
 											Configure Bot
 										</h3>
-										
+
 										<RadioGroup
 											defaultValue="default"
 											onValueChange={(value) => setSelectedBot(value as 'default' | 'custom')}
@@ -425,7 +425,7 @@ export default function Component({ user }: Props) {
 												Show me where to find the ID
 											</summary>
 											<div className="mt-2 p-3 bg-zinc-950 rounded-md text-xs font-mono text-zinc-300 overflow-x-auto border border-zinc-800 shadow-inner">
-<pre>{`{
+												<pre>{`{
   "message": {
     ...
     "forward_from_chat": {
@@ -458,12 +458,16 @@ export default function Component({ user }: Props) {
 
 												const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
 													authType: 'bot',
-													botToken: botToken as string,
+													botToken: botToken as string | undefined || undefined,
 													setBotRateLimit
 												};
 
 												try {
 													const client = await getTgClient(getTgClientArgs);
+													if (!client) {
+														toast.error('Failed to connect to telegram');
+														return;
+													}
 													const dialogs = await client?.getInputEntity(
 														String(channelId) as EntityLike
 													);
@@ -506,7 +510,7 @@ export default function Component({ user }: Props) {
 													Must start with -100
 												</p>
 											</div>
-											
+
 											{selectedBot === 'custom' && (
 												<div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
 													<label htmlFor="botToken" className="text-sm font-medium text-foreground">
@@ -526,7 +530,7 @@ export default function Component({ user }: Props) {
 													</p>
 												</div>
 											)}
-											
+
 											<div className="pt-2">
 												<ConnectChannelButton />
 											</div>
@@ -561,7 +565,7 @@ export default function Component({ user }: Props) {
 										</li>
 									</ul>
 									<p className="mt-3 text-xs opacity-90 italic">
-										This setup ensures that even if your secondary account gets banned, 
+										This setup ensures that even if your secondary account gets banned,
 										you can still access all your files through your main account.
 									</p>
 								</AlertDescription>
