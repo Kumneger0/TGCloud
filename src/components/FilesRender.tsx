@@ -11,7 +11,7 @@ import { withTelegramConnection } from '@/lib/telegramMutex';
 import Message, { FileItem, FilesData, GetAllFilesReturnType, User } from '@/lib/types';
 import {
 	canWeAccessTheChannel,
-	delelteItem,
+	deleteItem,
 	downloadMedia,
 	formatBytes,
 	generateVideoThumbnail,
@@ -272,6 +272,10 @@ function Files({
 	async function batchDelete() {
 		if (!Array.isArray(selectedFiles)) return;
 		try {
+			const fileTelegramIds = selectedFiles.map((file) => file.fileTelegramId).filter((id) => id !== null)
+			if (!stableClient) throw Error("there was an error while deleting the files")
+			const result = await deleteItem(user, fileTelegramIds, stableClient)
+			if (!result) throw Error("there was an error while deleting the files")
 			await Promise.all(
 				selectedFiles.map(async (file) => {
 					const { fileSmCacheKey, fileLgCacheKey } = getCacheKey(
@@ -285,13 +289,13 @@ function Files({
 					} catch (err) {
 						console.error(err);
 					}
-
 					await deleteFile(file.id);
 				})
 			);
 			toast.success('you have successfully deleted the files');
 		} catch (err) {
-			toast.error('Failed to Delete the files');
+			const message = err instanceof Error ? err.message : 'Failed to Delete the files'
+			toast.error(message);
 			console.error(err);
 		} finally {
 			router.refresh();
@@ -304,7 +308,7 @@ function Files({
 				{!!(selectedFiles as Array<FileItem>)?.length && (
 					<DeleteAllFiles deleteFn={async () => await batchDelete()}>
 						<Button className="py-2 px-4 self-end" variant="destructive">
-							<TrashIcon width={24} height={24} className="text-red-600" />
+							<TrashIcon width={24} height={24} />
 						</Button>
 					</DeleteAllFiles>
 				)}
@@ -499,7 +503,7 @@ const EachFile = React.memo(function EachFile({
 					withTelegramConnection(client, async () => {
 						await Promise.all([
 							deleteFile(file.id),
-							delelteItem(user, file.fileTelegramId, client)
+							deleteItem(user, file.fileTelegramId, client)
 						]);
 					});
 
