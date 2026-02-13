@@ -401,6 +401,9 @@ const EachFile = React.memo(function EachFile({
 	);
 	const [isFileNotFoundInTelegram, setFileNotFoundInTelegram] = useState(false);
 
+
+
+
 	const downlaodFile = async (size: 'large' | 'small', category: string) => {
 		if (!client) {
 			console.error('Telegram client not initialized');
@@ -635,9 +638,7 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 	);
 }
 
-
-
-const VideoMediaView = ({
+const VideoMediaView = React.memo(({
 	fileData,
 	client,
 	user
@@ -648,7 +649,7 @@ const VideoMediaView = ({
 }) => {
 	let self = useRef<HTMLVideoElement>(null);
 	const [url, setURL] = useState<string>();
-	// const playerRef = useRef<FluidPlayerInstance>(undefined);
+	const playerRef = useRef<FluidPlayerInstance>(undefined);
 
 	useEffect(() => {
 		(async () => {
@@ -675,21 +676,21 @@ const VideoMediaView = ({
 			});
 		})();
 
-		// if (!playerRef.current) {
-		// 	playerRef.current = fluidPlayer(self.current!, {
-		// 		layoutControls: {
-		// 			allowDownload: true,
-		// 			miniPlayer: {
-		// 				autoToggle: true,
-		// 				enabled: true,
-		// 				position: 'bottom right',
-		// 				height: 200,
-		// 				width: 300,
-		// 				placeholderText: fileData.fileName
-		// 			}
-		// 		}
-		// 	});
-		// }
+		if (!playerRef.current) {
+			playerRef.current = fluidPlayer(self.current!, {
+				layoutControls: {
+					allowDownload: true,
+					miniPlayer: {
+						autoToggle: true,
+						enabled: true,
+						position: 'bottom right',
+						height: 200,
+						width: 300,
+						placeholderText: fileData.fileName
+					}
+				}
+			});
+		}
 	}, []);
 
 	return (
@@ -724,7 +725,9 @@ const VideoMediaView = ({
 			</div>
 		</div>
 	);
-};
+})
+
+VideoMediaView.displayName = 'VideoMediaView';
 
 function ImagePreviewModal({
 	fileData,
