@@ -45,7 +45,10 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 export async function getTgClient(options: GetTgClientOptions) {
 	if (typeof window === 'undefined') return;
 	const user = await getUser();
-	if (!user) return;
+	if (!user) {
+		console.error('error', "user is not logged in ")
+		return
+	}
 	const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user);
 
 	try {

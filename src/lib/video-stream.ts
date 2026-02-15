@@ -227,7 +227,7 @@ const streamMP4 = async (
 
 				let currentOffset = 0;
 				let processedUpTo = 0; 
-				const chunkSize = 512 * 1024;
+				const chunkSize = 1024 * 1024;
 
 				while (mediaSource.readyState === 'open') {
 					const buffer = await fetchChunk(currentOffset, chunkSize);

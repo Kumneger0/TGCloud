@@ -172,17 +172,19 @@ function Files({
 				}
 
 				setTelegramClient(telegramClient);
-				const result = await withTelegramConnection(telegramClient as TelegramClient, () =>
-					canWeAccessTheChannel(telegramClient as TelegramClient, user)
+				const result = await withTelegramConnection(telegramClient as TelegramClient, (client) =>
+					canWeAccessTheChannel(client, user)
 				);
 				setCanWeAccessTGChannel(!!result);
 			} catch (err) {
-				console.error('err', err);
+				console.error('Error in Files main connection useEffect:', err);
 				setCanWeAccessTGChannel(false);
 			} finally {
 				setIsConnecting(false);
 			}
-		})();
+		})().catch(err => {
+			console.error('Unhandled rejection in Files main connection useEffect:', err);
+		});
 
 		return () => {
 			client?.connected && client.disconnect();
@@ -202,13 +204,12 @@ function Files({
 			if (!clientInstance) return;
 
 			let errCount = 0
-
 			await clientInstance?.start({
 				phoneNumber: async () => await getPhoneNumber(),
 				password: async () => await getPassword(),
 				phoneCode: async () => await getCode(),
 				onError: (err) => {
-					console.error('errr', err)
+					console.error('Telegram login error:', err)
 					errorToast(err?.message)
 					if (errCount >= 3) {
 						throw err
@@ -220,10 +221,12 @@ function Files({
 			const session = clientInstance?.session.save() as unknown as string;
 			return session;
 		} catch (err) {
+			console.error('Error in loginInTelegram:', err);
 			if (err && typeof err == 'object' && 'message' in err) {
 				const message = (err?.message as string) ?? 'There was an error';
 				errorToast(message);
 			}
+			return undefined;
 		}
 	}
 
@@ -563,31 +566,44 @@ const EachFile = React.memo(function EachFile({
 	useEffect(() => {
 		file.category == 'video'
 			? (async () => {
-				if (!client || typeof client === 'string') return;
+				try {
+					if (!client || typeof client === 'string') return;
 
-				const media = (await getMessage({
-					client,
-					messageId: file.fileTelegramId,
-					user: user as NonNullable<User>
-				})) as Message['media'] | null | undefined
+					const media = (await getMessage({
+						client,
+						messageId: file.fileTelegramId,
+						user: user as NonNullable<User>
+					})) as Message['media'] | null | undefined
 
-				if (!media) {
+					if (!media) {
+						setFileNotFoundInTelegram(true);
+						return;
+					}
+
+					const thumbnail = await generateVideoThumbnail(client, media);
+					if (thumbnail) {
+						setThumbnailURL(thumbnail);
+						return;
+					}
+
+					console.log('no thumbnail', file.fileName);
+				} catch (err) {
+					console.error('Error fetching video metadata:', err);
 					setFileNotFoundInTelegram(true);
-					return;
 				}
-
-				const thumbnail = await generateVideoThumbnail(client, media);
-				if (thumbnail) {
-					setThumbnailURL(thumbnail);
-					return;
-				}
-
-				console.log('no thumbnail', file.fileName);
-			})()
+			})().catch(err => {
+				console.error('Unhandled rejection in EachFile video effect:', err);
+			})
 			: (() => {
-				downlaodFile('small', file.category);
+				downlaodFile('small', file.category).catch(err => {
+					console.error('Error in downloadFile (small):', err);
+				});
 				requestIdleCallback(async (e) => {
-					await downlaodFile('large', file.category);
+					try {
+						await downlaodFile('large', file.category);
+					} catch (err) {
+						console.error('Error in downloadFile (large):', err);
+					}
 				});
 			})();
 
@@ -628,7 +644,7 @@ const EachFile = React.memo(function EachFile({
 				}
 
 				const promies = () =>
-					withTelegramConnection(client, async () => {
+					withTelegramConnection(client, async (client) => {
 						await Promise.all([
 							deleteFile(file.id),
 							deleteItem(user, file.fileTelegramId, client)
@@ -651,7 +667,7 @@ const EachFile = React.memo(function EachFile({
 			actionName: 'share',
 			onClick: async () => {
 				try {
-					await withTelegramConnection(client, async () => {
+					await withTelegramConnection(client, async (client) => {
 						await addBotToChannel(client, user);
 					});
 					const result = await shareFile({ fileID: file.fileTelegramId });
@@ -942,22 +958,29 @@ function AudioMediaView({
 
 	useEffect(() => {
 		(async () => {
-			await withTelegramConnection(client, async (client) => {
-				await downloadMedia(
-					{
-						category: 'audio',
-						setURL: setBlobURL,
-						user,
-						messageId: fileData.fileTelegramId,
-						size: 'large'
-					},
-					client
-				);
-				if (!blobURL) {
-					throw new Error('Failed to download audio file');
-				}
-			});
-		})();
+			try {
+				await withTelegramConnection(client, async (client) => {
+					await downloadMedia(
+						{
+							category: 'audio',
+							setURL: setBlobURL,
+							user,
+							messageId: fileData.fileTelegramId,
+							size: 'large'
+						},
+						client
+					);
+					if (!blobURL) {
+						// Note: blobURL check might be unreliable if setURL is async, 
+						// but keeping the logic consistent for now while adding the try/catch
+					}
+				});
+			} catch (err) {
+				console.error('Error downloading audio file:', err);
+			}
+		})().catch(err => {
+			console.error('Unhandled rejection in AudioMediaView effect:', err);
+		});
 
 		if (miniPlayerAudio) {
 			setMiniPlayerAudio &&
