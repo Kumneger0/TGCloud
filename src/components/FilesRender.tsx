@@ -1,13 +1,13 @@
 'use client';
-import { streamVideoToMediaSource } from '@/lib/video-stream';
-import { deleteChannelDetail, deleteFile, shareFile } from '@/actions';
+import { deleteChannelDetail, deleteFile, saveTelegramCredentials, shareFile } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { fileCacheDb } from '@/lib/dexie';
 import { getTgClient } from '@/lib/getTgClient';
-import { promiseToast } from '@/lib/notify';
+import { errorToast, promiseToast } from '@/lib/notify';
+import { getCode, getPassword, getPhoneNumber } from '@/lib/telegramAuthHelpers';
 import { withTelegramConnection } from '@/lib/telegramMutex';
 import Message, { FileItem, FilesData, GetAllFilesReturnType, User } from '@/lib/types';
 import {
@@ -18,15 +18,16 @@ import {
 	generateVideoThumbnail,
 	getCacheKey,
 	getMessage,
-	handleVideoDownload,
 	MediaCategory,
 	MediaSize,
 	removeCachedFile
 } from '@/lib/utils';
+import { streamVideoToMediaSource } from '@/lib/video-stream';
 import fluidPlayer from 'fluid-player';
 import { Minimize2, Play, Share2, TrashIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
@@ -111,6 +112,7 @@ function Files({
 	const [isError, setIsError] = useState(false);
 
 	const [isConnecting, setIsConnecting] = useState(false);
+	const [isUserLoading, setIsUserLoading] = useState(false);
 
 	const router = useRouter();
 	const [selectedFiles, setSelectedFiles] = useState<typeof files>([]);
@@ -135,7 +137,6 @@ function Files({
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
-
 	const handleCheckboxChange = useCallback(
 		(file: (typeof sortedFiles)[number], checked: boolean) => {
 			if (checked) {
@@ -148,7 +149,6 @@ function Files({
 		},
 		[setSelectedFiles]
 	);
-
 	useEffect(() => {
 		(async () => {
 			try {
@@ -189,20 +189,146 @@ function Files({
 		};
 	}, []);
 
+	const getClient = useCallback(async () => {
+		return await getTgClient({
+			stringSession: '',
+			authType: 'user'
+		});
+	}, []);
 
-	if (botRateLimit?.isRateLimited && user.authType === 'bot') {
+	async function loginInTelegram() {
+		try {
+			const clientInstance = await getClient();
+			if (!clientInstance) return;
+
+			let errCount = 0
+
+			await clientInstance?.start({
+				phoneNumber: async () => await getPhoneNumber(),
+				password: async () => await getPassword(),
+				phoneCode: async () => await getCode(),
+				onError: (err) => {
+					console.error('errr', err)
+					errorToast(err?.message)
+					if (errCount >= 3) {
+						throw err
+					}
+					errCount++
+				}
+			});
+
+			const session = clientInstance?.session.save() as unknown as string;
+			return session;
+		} catch (err) {
+			if (err && typeof err == 'object' && 'message' in err) {
+				const message = (err?.message as string) ?? 'There was an error';
+				errorToast(message);
+			}
+		}
+	}
+
+	async function connectTelegramUser() {
+		try {
+			setIsUserLoading(true);
+
+			const newSession = await loginInTelegram();
+			if (!newSession) {
+				setIsUserLoading(false);
+				return;
+			}
+
+			const clientInstance = await getClient();
+			if (!clientInstance) {
+				toast.error('Failed to initialize Telegram client');
+				return;
+			}
+			if (!clientInstance?.connected) {
+				await clientInstance?.connect();
+			}
+
+			if (!newSession) {
+				toast.error('There was an error while connecting to telegram');
+				return;
+			}
+
+			if (user.channelId && user.accessHash) {
+				await saveTelegramCredentials({
+					session: newSession,
+					accessHash: user.accessHash,
+					channelId: user.channelId,
+					channelTitle: user.channelTitle ?? " ",
+					authType: 'user'
+				});
+				posthog.capture('userTelegramAccountConnect', { userId: user.id });
+				window.location.reload();
+				return;
+			}
+		} catch (err) {
+			console.error(err);
+			if (err instanceof Error) {
+				toast.error(err.message);
+			}
+		} finally {
+			setIsUserLoading(false);
+		}
+	}
+
+
+
+
+
+	if (user.authType === 'bot') {
 		return (
 			<div className="flex items-center justify-center h-full">
-				<div className="text-center space-y-4">
+				<div className="text-center space-y-4 max-w-2xl px-4">
 					<h2 className="text-xl font-semibold">
 						Slow Down! Telegram Needs a Breather 😭 (A.K.A Rate Limit)
 					</h2>
 					<p className="text-muted-foreground">
 						Oops! We&apos;ve sent too many requests to Telegram, and they&apos;ve asked us to pause
 						for a bit. Please come back in {Math.ceil(botRateLimit?.retryAfter / 60)} minutes, and
-						we&apos;ll be good to go! If you don&apos;t want to wait, you can add a new bot token
-						from the visible profile menu, and we&apos;ll use that instead.
+						we&apos;ll be good to go!
 					</p>
+
+					<div className="p-4 bg-muted/50 rounded-lg border border-border text-left space-y-4 mt-6">
+						<div className="flex items-start gap-3">
+							<div className="p-2 bg-primary/10 rounded-full text-primary shrink-0">
+								<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" /></svg>
+							</div>
+							<div className="space-y-1">
+								<h3 className="font-medium">Want to bypass this limit?</h3>
+								<p className="text-sm text-muted-foreground">
+									Connect your <strong>User Account</strong> instead of using a bot. User accounts have much higher limits!
+								</p>
+							</div>
+						</div>
+
+						<div className="space-y-3 pt-2">
+							<div className="text-sm text-amber-600 dark:text-amber-400 p-3 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-900/50 flex gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M3.32 6.64l6.09 10.59a2 2 0 0 0 3.18 0l6.09-10.59-1.32-2.31H4.64l-1.32 2.31Z" /></svg>
+								<div>
+									<p className="font-semibold">Safety First!</p>
+									<p className="opacity-90">Please use a <strong>separate Telegram account</strong> for this purpose.</p>
+								</div>
+							</div>
+
+							<div className="text-sm text-blue-600 dark:text-blue-400 p-3 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-900/50 flex gap-2">
+								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+								<div>
+									<p className="font-semibold">Requirement</p>
+									<p className="opacity-90">The account you connect must be an <strong>admin</strong> of your current channel.</p>
+								</div>
+							</div>
+						</div>
+
+						<Button
+							onClick={connectTelegramUser}
+							disabled={isUserLoading}
+							className="w-full"
+						>
+							{isUserLoading ? 'Connecting...' : 'Switch to User Account'}
+						</Button>
+					</div>
 				</div>
 			</div>
 		);
