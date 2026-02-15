@@ -6,7 +6,7 @@
 		"dev:turbo": "cross-env NODE_OPTIONS='--inspect' dotenv -e .env.development -- next dev --turbo -p 3000",
 		"dev": "cross-env NODE_OPTIONS='--inspect' dotenv -e .env.development -- next dev ",
 		"build:local": "dotenv -e .env.development -- next build",
-		"build": "cross-env NODE_ENV=production pnpm dlx drizzle-kit migrate && next build",
+		"build": "cross-env NODE_ENV=production npx drizzle-kit migrate && next build",
 		"start": "next start",
 		"lint": "next lint",
 		"db:generate": "dotenv -e .env.development -- drizzle-kit generate",
