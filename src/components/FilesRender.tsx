@@ -549,6 +549,28 @@ const EachFile = React.memo(function EachFile({
 				id={url}
 				className={`group relative overflow-hidden rounded-lg border border-border bg-background transition-all hover:bg-accent flex flex-col w-full min-w-0`}
 			>
+				{isFileNotFoundInTelegram && (
+					<div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-4 text-center space-y-3">
+						<p className="text-sm font-medium text-destructive">
+							File not found in Telegram
+						</p>
+						<a
+							href={`https://t.me/c/${(user.channelId ?? '').replace('-100', '')}/${file.fileTelegramId}`}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-xs text-primary hover:underline"
+						>
+							Search in Telegram
+						</a>
+						<p className="text-[10px] text-muted-foreground">
+							If you can find the file using the link above, please{' '}
+							<a href="mailto:tgcloud-support@kumneger.dev" className="underline">
+								contact us
+							</a>
+							.
+						</p>
+					</div>
+				)}
 				<span className="sr-only">View file</span>
 				<div className="w-full min-w-full flex-1 aspect-square relative bg-muted rounded-t-lg overflow-hidden">
 					{file.category == 'image' ? (
