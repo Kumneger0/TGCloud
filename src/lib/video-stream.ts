@@ -123,8 +123,6 @@ const streamMP4 = async (
 		const fileSize = (media as any).document?.size?.value 
 			? Number((media as any).document.size.value) 
 			: Infinity;
-		
-		let isReady = false;
 
 		mp4boxfile.onError = (e: any) => {
 			console.error('MP4Box error:', e);
@@ -146,8 +144,9 @@ const streamMP4 = async (
 		};
 
 		mp4boxfile.onReady = (info) => {
-			isReady = true;
 			if (mediaSource.readyState !== 'open') return;
+			const durationInSeconds = info.duration / info.timescale;
+			mediaSource.duration = durationInSeconds;
 
 			const track = info.tracks.find((t) => t.type === 'video');
 			if (track) {
