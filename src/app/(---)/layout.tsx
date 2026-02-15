@@ -7,7 +7,9 @@ export default function HomeLayout({
 }>) {
 	return (
 		<>
-			<Header />
+			<div className="relative z-50">
+				<Header />
+			</div>
 			{children}
 			<Footer />
 		</>

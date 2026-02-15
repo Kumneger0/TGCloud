@@ -482,7 +482,7 @@ export default function Component({ user }: Props) {
 															channelId: String(id) as string,
 															accessHash: String(accessHash),
 															channelTitle: '',
-															botToken: botToken as string,
+															botToken: botToken as string | null || undefined,
 															authType: 'bot'
 														});
 														toast.success('Channel Connected Successfully');
