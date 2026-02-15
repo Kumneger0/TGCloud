@@ -446,7 +446,7 @@ function Files({
 							file={file as FileItem}
 							user={stableUser}
 						/>
-						<div className="absolute top-2 left-2 z-10">
+						<div className="absolute top-2 left-2 z-40">
 							<Input
 								onChange={(e) => handleCheckboxChange(file, e.target.checked)}
 								id={`checkbox-${file.id}`}
@@ -676,7 +676,7 @@ const EachFile = React.memo(function EachFile({
 				className={`group relative overflow-hidden rounded-lg border border-border bg-background transition-all hover:bg-accent flex flex-col w-full min-w-0`}
 			>
 				{isFileNotFoundInTelegram && (
-					<div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-4 text-center space-y-3">
+					<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-4 text-center space-y-3">
 						<p className="text-sm font-medium text-destructive">
 							File not found in Telegram
 						</p>

@@ -101,16 +101,33 @@ export default function Component({ user }: Props) {
 			}
 
 			if (user.channelId && user.accessHash) {
-				await saveTelegramCredentials({
-					session: tgUserSession,
-					accessHash: user.accessHash,
-					channelId: user.channelId,
-					channelTitle: user.channelTitle || user.name + "Drive",
-					authType: 'user'
-				});
-				posthog.capture('userTelegramAccountConnect', { userId: user.id });
-				router.push('/files');
-				return;
+				try {
+
+					const channelId = user?.channelId!.startsWith('-100')
+						? user?.channelId!
+						: `-100${user?.channelId!}`;
+					const entity = await clientInstance.getInputEntity(channelId);
+					const testMessage = 'This is test to message to verify that we can still access this channel'
+					const result = await clientInstance.sendMessage(entity, {
+						message: testMessage,
+					});
+
+					if (result.id) {
+						clientInstance.deleteMessages(entity, [result.id], { revoke: true }).catch((err) => { console.error(err) });
+						await saveTelegramCredentials({
+							session: tgUserSession,
+							accessHash: user.accessHash,
+							channelId: user.channelId,
+							channelTitle: user.channelTitle || user.name + "Drive",
+							authType: 'user'
+						});
+						posthog.capture('userTelegramAccountConnect', { userId: user.id });
+						router.push('/files');
+						return;
+					}
+				} catch (err) {
+					console.error(err)
+				}
 			}
 
 			const channelDetails = await createTelegramChannel(clientInstance);
