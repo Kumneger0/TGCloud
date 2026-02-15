@@ -183,14 +183,13 @@ export const saveUserName = async (username: string) => {
 };
 
 export async function getUser() {
-	const session = await auth.api.getSession({
-		headers: await headers()
-	});
-
-	if (!session) return null;
-	const user = session.user;
-
 	try {
+		const session = await auth.api.getSession({
+			headers: await headers()
+		});
+
+		if (!session) return null;
+		const user = session.user;
 		const result = await db.query.usersTable.findFirst({
 			where(fields, { eq }) {
 				return eq(fields.id, user.id);
@@ -201,8 +200,8 @@ export async function getUser() {
 		});
 		return result;
 	} catch (err) {
-		if (err instanceof Error) throw new Error(err.message);
-		throw new Error('There was an error while getting user');
+		console.error(err)
+		return null
 	}
 }
 
@@ -400,37 +399,43 @@ export async function getFilesFromSpecificType({
 }
 
 export async function createFolder(name: string, parentId: string | null) {
-	const user = await getUser();
-	if (!user || !user.id) {
-		throw new Error('User not authenticated');
-	}
-
-	let parentPath = '';
-	if (parentId) {
-		const parentFolder = await db
-			.select()
-			.from(foldersTable)
-			.where(eq(foldersTable.id, parentId))
-			.limit(1)
-			.execute();
-
-		if (parentFolder.length > 0) {
-			parentPath = parentFolder[0].path;
+	try {
+		const user = await getUser();
+		if (!user || !user.id) {
+			throw new Error('User not authenticated');
 		}
+
+		let parentPath = '';
+		if (parentId) {
+			const parentFolder = await db
+				.select()
+				.from(foldersTable)
+				.where(eq(foldersTable.id, parentId))
+				.limit(1)
+				.execute();
+
+			if (parentFolder.length > 0) {
+				parentPath = parentFolder[0].path;
+			}
+		}
+
+		const folderId = crypto.randomUUID();
+		const path = parentPath ? `${parentPath}/${name}` : `/${name}`;
+
+		await db.insert(foldersTable).values({
+			id: folderId,
+			name,
+			userId: user.id,
+			parentId,
+			path
+		});
+		revalidateTag('get-folder', 'max');
+		return folderId;
+	} catch (error) {
+		console.error('Error creating folder:', error);
+		if (error instanceof Error) throw error;
+		throw new Error('Failed to create folder');
 	}
-
-	const folderId = crypto.randomUUID();
-	const path = parentPath ? `${parentPath}/${name}` : `/${name}`;
-
-	await db.insert(foldersTable).values({
-		id: folderId,
-		name,
-		userId: user.id,
-		parentId,
-		path
-	});
-	revalidateTag('get-folder', 'max');
-	return folderId;
 }
 
 export async function uploadFile(file: {
@@ -499,13 +504,11 @@ async function generateId() {
 
 export const requireUserAuthentication = async () => {
 	const user = await getUser();
+	if (!user) {
+		redirect('/login')
+	}
 	const hasNotHaveNeccessaryDetails = !user?.accessHash || !user?.channelId;
-
 	if (hasNotHaveNeccessaryDetails) return redirect('/connect-telegram');
-
-	if (!user.channelId || !user.accessHash)
-		throw new Error('There was something wrong');
-
 	return user;
 };
 

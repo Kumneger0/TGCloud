@@ -14,11 +14,13 @@ function SharedFile({
 
 	useEffect(() => {
 		if (!user) {
-			throw new Error('Failed to get user');
+			console.error('Failed to get user in SharedFile');
+			return;
 		}
 
 		if (!fileID) {
-			throw new Error('Failed to get file ID');
+			console.error('Failed to get file ID in SharedFile');
+			return;
 		}
 
 		//TODO:  implment sharing file in secure way
