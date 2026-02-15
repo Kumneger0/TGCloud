@@ -108,8 +108,9 @@ function Files({
 	const [canWeAccessTGChannel, setCanWeAccessTGChannel] = useState<boolean | 'INITIAL'>('INITIAL');
 	const [client, setTelegramClient] = useState<TelegramClient | null>(null);
 
-	const [isConnecting, setIsConnecting] = useState(false);
 	const [isError, setIsError] = useState(false);
+
+	const [isConnecting, setIsConnecting] = useState(false);
 
 	const router = useRouter();
 	const [selectedFiles, setSelectedFiles] = useState<typeof files>([]);
@@ -149,21 +150,22 @@ function Files({
 	);
 
 	useEffect(() => {
+		console.log('i have no fucking clue what is happenig here');
 		(async () => {
 			try {
+				setIsConnecting(true);
 				const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
 					user.authType === 'user' && user.telegramSession
 						? {
-								authType: 'user',
-								stringSession: user.telegramSession ?? ''
-							}
+							authType: 'user',
+							stringSession: user.telegramSession ?? ''
+						}
 						: {
-								authType: 'bot',
-								botToken: user.botTokens?.[0]?.token,
-								setBotRateLimit
-							};
+							authType: 'bot',
+							botToken: user.botTokens?.[0]?.token,
+							setBotRateLimit
+						};
 
-				setIsConnecting(true);
 				const telegramClient = await getTgClient(getTgClientArgs);
 				if (!telegramClient) {
 					setIsError(true);
@@ -184,11 +186,13 @@ function Files({
 		})();
 
 		return () => {
-			typeof client === 'object' && client?.disconnect();
+			client?.connected && client.disconnect();
 		};
 	}, []);
 
-	if (botRateLimit?.isRateLimited) {
+	console.log('hey yooo what are we doing here', botRateLimit);
+
+	if (botRateLimit?.isRateLimited && user.authType === 'bot') {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
@@ -401,9 +405,6 @@ const EachFile = React.memo(function EachFile({
 	);
 	const [isFileNotFoundInTelegram, setFileNotFoundInTelegram] = useState(false);
 
-
-
-
 	const downlaodFile = async (size: 'large' | 'small', category: string) => {
 		if (!client) {
 			console.error('Telegram client not initialized');
@@ -441,28 +442,28 @@ const EachFile = React.memo(function EachFile({
 	useEffect(() => {
 		file.category == 'video'
 			? (async () => {
-					if (!client || typeof client === 'string') return;
+				if (!client || typeof client === 'string') return;
 
-					const media = (await getMessage({
-						client,
-						messageId: file.fileTelegramId,
-						user: user as NonNullable<User>
-					})) as Message['media'];
+				const media = (await getMessage({
+					client,
+					messageId: file.fileTelegramId,
+					user: user as NonNullable<User>
+				})) as Message['media'];
 
-					const thumbnail = await generateVideoThumbnail(client, media as Message['media']);
-					if (thumbnail) {
-						setThumbnailURL(thumbnail);
-						return;
-					}
+				const thumbnail = await generateVideoThumbnail(client, media as Message['media']);
+				if (thumbnail) {
+					setThumbnailURL(thumbnail);
+					return;
+				}
 
-					console.log('no thumbnail', file.fileName);
-				})()
+				console.log('no thumbnail', file.fileName);
+			})()
 			: (() => {
-					downlaodFile('small', file.category);
-					requestIdleCallback(async (e) => {
-						await downlaodFile('large', file.category);
-					});
-				})();
+				downlaodFile('small', file.category);
+				requestIdleCallback(async (e) => {
+					await downlaodFile('large', file.category);
+				});
+			})();
 
 		return () => {
 			URL.revokeObjectURL(url as string);
@@ -482,19 +483,16 @@ const EachFile = React.memo(function EachFile({
 				link.click();
 			},
 			Icon: CloudDownload,
-			className: `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted ${
-				!url ? 'cursor-not-allowed opacity-50' : ''
-			}`
+			className: `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted ${!url ? 'cursor-not-allowed opacity-50' : ''
+				}`
 		},
 		{
 			actionName: 'delete',
 			onClick: async () => {
-				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${
-					'small' satisfies MediaSize
-				}-${file.category}`;
-				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${
-					'large' satisfies MediaSize
-				}-${file.category}`;
+				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${'small' satisfies MediaSize
+					}-${file.category}`;
+				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${'large' satisfies MediaSize
+					}-${file.category}`;
 
 				try {
 					await fileCacheDb.fileCache.where('cacheKey').equals(cacheKeySmall).delete();
@@ -555,6 +553,7 @@ const EachFile = React.memo(function EachFile({
 				<div className="w-full min-w-full flex-1 aspect-square relative bg-muted rounded-t-lg overflow-hidden">
 					{file.category == 'image' ? (
 						<FileModalView
+							key={file.id}
 							id={file.id}
 							ItemThatWillShowOnModal={() => (
 								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url!} />
@@ -571,7 +570,6 @@ const EachFile = React.memo(function EachFile({
 							id={file.id}
 							ItemThatWillShowOnModal={() => (
 								<VideoMediaView
-									key={file.id}
 									fileData={{ ...file, category: 'video' }}
 									client={client}
 									user={user}
@@ -591,7 +589,6 @@ const EachFile = React.memo(function EachFile({
 							id={file.id}
 							ItemThatWillShowOnModal={() => (
 								<AudioMediaView
-									key={file.id}
 									fileData={{ ...file, category: 'audio' }}
 									client={client}
 									user={user!}
@@ -679,7 +676,13 @@ const VideoMediaView = React.memo(({
 		if (!playerRef.current) {
 			playerRef.current = fluidPlayer(self.current!, {
 				layoutControls: {
-					allowDownload: true,
+					allowDownload: false,
+					autoPlay: true,
+					logo: {
+						imageUrl: '/TGCloud_PWA_icon_96x96.png',
+						position: 'top left',
+						imageMargin: '10px',
+					},
 					miniPlayer: {
 						autoToggle: true,
 						enabled: true,
@@ -691,7 +694,7 @@ const VideoMediaView = React.memo(({
 				}
 			});
 		}
-	}, []);
+	}, [fileData.id]);
 
 	return (
 		<div className="flex flex-col h-full">
