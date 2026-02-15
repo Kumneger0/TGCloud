@@ -139,6 +139,10 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 		throw new Error('user needs to be logged in.');
 	}
 	try {
+		await db.update(usersTable).set({
+			authType: options.authType
+		}).where(eq(usersTable.id, user.id));
+
 		if (options.authType === 'bot') {
 			await db.insert(botTokens).values({
 				id: crypto.randomUUID(),
@@ -146,7 +150,7 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 				token: options.botToken
 			});
 		}
-		const result = await db
+		const result = await db 
 			.update(usersTable)
 			.set({
 				accessHash: options.accessHash,

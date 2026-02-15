@@ -105,7 +105,7 @@ function Files({
 	currentFolderId: string | null;
 }) {
 	const sortBy = useGlobalStore((state) => state.sortBy);
-	const [canWeAccessTGChannel, setCanWeAccessTGChannel] = useState<boolean | 'INITIAL'>('INITIAL');
+	const [canWeAccessTGChannel, setCanWeAccessTGChannel] = useState<boolean>(true);
 	const [client, setTelegramClient] = useState<TelegramClient | null>(null);
 
 	const [isError, setIsError] = useState(false);
@@ -150,7 +150,6 @@ function Files({
 	);
 
 	useEffect(() => {
-		console.log('i have no fucking clue what is happenig here');
 		(async () => {
 			try {
 				setIsConnecting(true);
@@ -162,7 +161,7 @@ function Files({
 						}
 						: {
 							authType: 'bot',
-							botToken: user.botTokens?.[0]?.token,
+							botToken: undefined,
 							setBotRateLimit
 						};
 
@@ -190,7 +189,6 @@ function Files({
 		};
 	}, []);
 
-	console.log('hey yooo what are we doing here', botRateLimit);
 
 	if (botRateLimit?.isRateLimited && user.authType === 'bot') {
 		return (
@@ -231,7 +229,7 @@ function Files({
 		);
 	}
 
-	if (canWeAccessTGChannel !== 'INITIAL' && canWeAccessTGChannel === false)
+	if (!canWeAccessTGChannel)
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
@@ -406,6 +404,7 @@ const EachFile = React.memo(function EachFile({
 	const [isFileNotFoundInTelegram, setFileNotFoundInTelegram] = useState(false);
 
 	const downlaodFile = async (size: 'large' | 'small', category: string) => {
+		console.log('about to start downloading')
 		if (!client) {
 			console.error('Telegram client not initialized');
 			return;
@@ -448,9 +447,14 @@ const EachFile = React.memo(function EachFile({
 					client,
 					messageId: file.fileTelegramId,
 					user: user as NonNullable<User>
-				})) as Message['media'];
+				})) as Message['media'] | null | undefined
 
-				const thumbnail = await generateVideoThumbnail(client, media as Message['media']);
+				if (!media) {
+					setFileNotFoundInTelegram(true);
+					return;
+				}
+
+				const thumbnail = await generateVideoThumbnail(client, media);
 				if (thumbnail) {
 					setThumbnailURL(thumbnail);
 					return;
