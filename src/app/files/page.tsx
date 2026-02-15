@@ -2,6 +2,7 @@ import { getAllFiles, getFolderContents, requireUserAuthentication } from '@/act
 import { Dashboard } from '@/components/dashboard';
 import Files from '@/components/FilesRender';
 import { LoadingItems } from '@/components/loading-files';
+import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
 import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { Suspense } from 'react';
@@ -18,7 +19,7 @@ export default async function Home(props: { searchParams: Promise<Record<string,
 	if (!user) return null;
 	const cookieStore = await cookies();
 
-	const stringSession = cookieStore.get('telegramSession')?.value;
+	const stringSession = cookieStore.get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value;
 	const searchItem = searchParams.search;
 	const page = parseInt(searchParams.page || '1');
 	const currentFolderId = searchParams.folderId || null;

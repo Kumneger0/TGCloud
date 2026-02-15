@@ -256,7 +256,7 @@ function Files({
 					session: newSession,
 					accessHash: user.accessHash,
 					channelId: user.channelId,
-					channelTitle: user.channelTitle ?? " ",
+					channelTitle: user.channelTitle ?? user.name + "Drive",
 					authType: 'user'
 				});
 				posthog.capture('userTelegramAccountConnect', { userId: user.id });
@@ -273,11 +273,7 @@ function Files({
 		}
 	}
 
-
-
-
-
-	if (user.authType === 'bot') {
+	if (botRateLimit.isRateLimited && user.authType === 'bot') {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4 max-w-2xl px-4">

@@ -1,18 +1,12 @@
-import { betterAuth } from 'better-auth';
-import { nextCookies } from 'better-auth/next-js';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { db } from '@/db';
 import * as schema from '@/db/schema';
 import { env } from '@/env';
-
-const s = {
-	extra: {
-		type: 'string'
-	}
-} as const;
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { nextCookies } from 'better-auth/next-js';
 
 export const auth = betterAuth({
-	appName: 'Better Auth Demo',
+	appName: 'TGCloud',
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema: {
@@ -34,7 +28,7 @@ export const auth = betterAuth({
 		github: {
 			clientId: env.NEXT_PUBLIC_GITHUB_CLIENT_ID || '',
 			clientSecret: env.GITHUB_CLIENT_SECRET || ''
-		}
+		}, 
 	},
 	plugins: [nextCookies()]
 });
