@@ -100,12 +100,12 @@ export default function Component({ user }: Props) {
 				return;
 			}
 
-			if (user.channelId && user.channelTitle && user.accessHash) {
+			if (user.channelId && user.accessHash) {
 				await saveTelegramCredentials({
 					session: tgUserSession,
 					accessHash: user.accessHash,
 					channelId: user.channelId,
-					channelTitle: user.channelTitle,
+					channelTitle: user.channelTitle || user.name + "Drive",
 					authType: 'user'
 				});
 				posthog.capture('userTelegramAccountConnect', { userId: user.id });
