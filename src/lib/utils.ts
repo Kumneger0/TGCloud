@@ -1,6 +1,6 @@
 import { uploadFile } from '@/actions';
 import { fileCacheDb } from '@/lib/dexie';
-import Message, { MessageMediaPhoto } from '@/lib/types';
+import Message, { FileItem, MessageMediaPhoto } from '@/lib/types';
 import { UploadProgress } from '@/store/global-store';
 import { type ClassValue, clsx } from 'clsx';
 import { ReadonlyURLSearchParams } from 'next/navigation';
@@ -12,16 +12,26 @@ import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
 import { ChannelDetails, User } from './types';
 import { TELEGRAM_ERRORS } from './consts';
+import { getCode, getPassword, getPhoneNumber } from './telegramAuthHelpers';
+import { errorToast } from './notify';
 
 export type MediaSize = 'large' | 'small';
 export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
+
+
+export const QUERY_KEYS = {
+	audio: (id: number) => `audio-media-view-${id}`,
+	video: (id: number) => `video-media-view-${id}`,
+	image: (id: number) => `image-media-view-${id}`,
+	document: (id: number) => `document-media-view-${id}`,
+}
 
 
 interface DownloadMediaOptions {
 	user: NonNullable<User>;
 	messageId: number | string;
 	size: MediaSize;
-	setURL: Dispatch<SetStateAction<string>>;
+	// setURL: Dispatch<SetStateAction<string>>;
 	category: MediaCategory;
 	isShare?: boolean;
 }
@@ -194,6 +204,24 @@ export function getBannerURL(filename: string, isDarkMode: boolean) {
 	return bannerUrl;
 }
 
+
+
+const filePlaceholderObj = {
+	image: '/image-placeholder.png',
+	document: '/generic-document-placeholder.png',
+	pdf: '/pdf-placeholder.png',
+	audio: '/audio-placeholder.svg',
+	video: '/video-placeholder.png'
+};
+
+export const getFilePlaceholder = (file: FileItem) => {
+	if (file.category.startsWith('image')) return filePlaceholderObj.image;
+	if (file.category == 'application/pdf') return filePlaceholderObj.pdf;
+	if (file.category.startsWith('application')) return filePlaceholderObj.document;
+	if (file.category.startsWith('audio')) return filePlaceholderObj.audio;
+	if (file.category.startsWith('video')) return filePlaceholderObj.video;
+};
+
 export function isDarkMode() {
 	return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 }
@@ -212,6 +240,38 @@ export const canWeAccessTheChannel = async (client: TelegramClient, user: User) 
 	}
 };
 
+
+export async function loginInTelegram(clientInstance: TelegramClient | undefined) {
+	try {
+		if (!clientInstance) return;
+
+		let errCount = 0
+		await clientInstance?.start({
+			phoneNumber: async () => await getPhoneNumber(),
+			password: async () => await getPassword(),
+			phoneCode: async () => await getCode(),
+			onError: (err) => {
+				console.error('Telegram login error:', err)
+				errorToast(err?.message)
+				if (errCount >= 3) {
+					throw err
+				}
+				errCount++
+			}
+		});
+
+		const session = clientInstance?.session.save() as unknown as string;
+		return session;
+	} catch (err) {
+		console.error('Error in loginInTelegram:', err);
+		if (err && typeof err == 'object' && 'message' in err) {
+			const message = (err?.message as string) ?? 'There was an error';
+			errorToast(message);
+		}
+		return undefined;
+	}
+}
+
 export const getMessage = async ({
 	messageId,
 	client,
@@ -220,10 +280,15 @@ export const getMessage = async ({
 	client: TelegramClient;
 }) => {
 	if (!client.connected) await client.connect();
-	const channelId = user?.channelId as string;
+
+	const channelId = user?.channelId?.startsWith('-100')
+		? user?.channelId
+		: `-100${user?.channelId}`;
+
+	const entity = await client.getInputEntity(channelId as EntityLike);
 
 	const result = (
-		(await client.getMessages(channelId, {
+		(await client.getMessages(entity, {
 			ids: [Number(messageId)]
 		})) as unknown as Message[]
 	)[0];
@@ -253,9 +318,9 @@ async function getCachedFile(cacheKey: string) {
 }
 
 export const downloadMedia = async (
-	{ user, messageId, size, setURL, category, isShare }: DownloadMediaOptions,
+	{ user, messageId, size, category }: DownloadMediaOptions,
 	client: TelegramClient | 'CONNECTING' | null
-): Promise<Blob | { fileExists: boolean } | null> => {
+): Promise<{ blob?: Blob, url?: string, notFound?: boolean } | null> => {
 	if (!user || !client || !user.channelId || !user.accessHash)
 		throw new Error('failed to get user');
 
@@ -264,32 +329,30 @@ export const downloadMedia = async (
 	if (fileLg) {
 		const blob = fileLg.data;
 		const url = URL.createObjectURL(blob);
-		setURL(url);
-		return blob;
+		return { blob, url }
 	}
 
 	const fileSm = await getCachedFile(fileSmCacheKey);
 	if (fileSm) {
 		const blob = fileSm.data;
 		const url = URL.createObjectURL(blob);
-		setURL(url);
+		return { blob, url }
 	}
 
 	if (typeof client === 'string') return null;
 
 	const media = await getMessage({ client, messageId, user });
-	if (!media) return { fileExists: false };
+	if (!media) return { notFound: false, blob: undefined, url: undefined };
 
 	try {
 		if (category === 'video')
-			return await handleVideoDownload(client, media as Message['media'], async (chunk) => {});
+			return await handleVideoDownload(client, media as Message['media'], async (chunk) => { });
 		if (media)
 			return await handleMediaDownload(
 				client,
 				media,
 				size,
 				size === 'large' ? fileLgCacheKey : fileSmCacheKey,
-				setURL
 			);
 	} catch (err) {
 		console.error(err);
@@ -321,8 +384,7 @@ export const handleMediaDownload = async (
 	media: Message['media'] | MessageMediaPhoto,
 	size: MediaSize,
 	cacheKey: string,
-	setURL: Dispatch<SetStateAction<string>>
-): Promise<Blob | null> => {
+): Promise<{ blob: Blob, url: string } | null> => {
 	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
 		progressCallback: (progress, total) => {
 			const percent = (Number(progress) / Number(total)) * 100;
@@ -338,8 +400,7 @@ export const handleMediaDownload = async (
 		cacheKey
 	});
 
-	setURL(URL.createObjectURL(blob));
-	return blob;
+	return { blob, url: URL.createObjectURL(blob) };
 };
 
 export const downloadVideoThumbnail = async (
@@ -354,7 +415,7 @@ export const downloadVideoThumbnail = async (
 		thumb: 1
 	});
 	if (!buffer) return;
-	return buffer;
+	return { blob: new Blob([buffer as BlobPart]), url: URL.createObjectURL(new Blob([buffer as BlobPart])) };
 };
 
 export async function generateVideoThumbnail(client: TelegramClient, media: Message['media']) {

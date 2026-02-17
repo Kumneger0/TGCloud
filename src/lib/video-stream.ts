@@ -27,26 +27,19 @@ export function getVideoCodec(mimeType: string) {
 	return mimeCodec;
 }
 
-
-
-
 type StreamMediaArgs = {
 	client: TelegramClient,
 	media: Message['media'],
 	mimeType: string,
-	setURL: Dispatch<SetStateAction<string | undefined>>,
+	mediaSource: MediaSource
 }
 
 export const streamMedia = async (
-	{ client, media, mimeType, setURL }: StreamMediaArgs
+	{ client, media, mimeType, mediaSource }: StreamMediaArgs
 ) => {
 	if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
-		return streamDirectAudio(client, media, mimeType, setURL);
+		return streamDirectAudio(client, media, mimeType, mediaSource);
 	}
-
-	const mediaSource = new MediaSource();
-	const url = URL.createObjectURL(mediaSource);
-	setURL(url);
 
 	if (mimeType === 'video/webm') {
 		return streamWebM(client, media, mediaSource, mimeType);
@@ -126,12 +119,10 @@ const streamDirectAudio = async (
 	client: TelegramClient,
 	media: Message['media'],
 	mimeType: string,
-	setURL: Dispatch<SetStateAction<string | undefined>>
+	mediaSource: MediaSource
 ) => {
 	if (MediaSource.isTypeSupported(mimeType)) {
-		const mediaSource = new MediaSource();
 		const url = URL.createObjectURL(mediaSource);
-		setURL(url);
 
 		return new Promise<void>((resolve, reject) => {
 			const onSourceOpen = async () => {

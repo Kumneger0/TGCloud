@@ -5,14 +5,17 @@ import * as VisuallyHidden from '@radix-ui/react-visually-hidden';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ComponentRef, useRef, useState, type JSX } from 'react';
 import { useMediaQuery } from './useMediaQuery';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function FileModalView({
 	children,
-	ItemThatWillShowOnModal,
-	id
+	modalContent,
+	id,
+	queryKey
 }: {
 	children: React.ReactNode;
-	ItemThatWillShowOnModal: () => JSX.Element;
+		modalContent: React.ReactNode;
+		queryKey: string;
 	id: number;
 }) {
 	const searchParams = useSearchParams();
@@ -26,11 +29,15 @@ export function FileModalView({
 
 	const isDesktop = useMediaQuery('(min-width: 768px)');
 
-	const handleOpenChange = (value: boolean) => {
+	const queryClient = useQueryClient()
+
+	const handleOpenChange = async (value: boolean) => {
+
 		setOpen(value);
 		if (value) {
 			router.push(pathname + '?' + createQueryString('open', id.toString()));
 		} else {
+			await queryClient.invalidateQueries({ queryKey: [queryKey] })
 			router.push(pathname);
 		}
 	};
@@ -38,12 +45,12 @@ export function FileModalView({
 	if (isDesktop) {
 		return (
 			<Dialog open={open} onOpenChange={handleOpenChange}>
-				<DialogTrigger key={id + open.toString()} className="w-full">{children}</DialogTrigger>
+				<DialogTrigger className="w-full">{children}</DialogTrigger>
 				<DialogContent className="md:min-w-[760px] lg:min-w-[1000px] w-full max-h-[90dvh] h-full overflow-y-auto">
 					<VisuallyHidden.Root>
 						<DialogTitle>Menu</DialogTitle>
 					</VisuallyHidden.Root>
-					<ItemThatWillShowOnModal />
+					{modalContent}
 				</DialogContent>
 			</Dialog>
 		);
@@ -51,12 +58,12 @@ export function FileModalView({
 
 	return (
 		<Drawer open={open} onOpenChange={handleOpenChange}>
-			<DrawerTrigger key={id + open.toString()} className="w-full">{children}</DrawerTrigger>
+			<DrawerTrigger className="w-full">{children}</DrawerTrigger>
 			<DrawerContent className="max-h-[90dvh] h-full">
 				<VisuallyHidden.Root>
 					<DialogTitle>Menu</DialogTitle>
 				</VisuallyHidden.Root>
-				<ItemThatWillShowOnModal />
+				{modalContent}
 			</DrawerContent>
 		</Drawer>
 	);
