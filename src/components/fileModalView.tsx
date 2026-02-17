@@ -38,7 +38,7 @@ export function FileModalView({
 	if (isDesktop) {
 		return (
 			<Dialog open={open} onOpenChange={handleOpenChange}>
-				<DialogTrigger key={id} className="w-full">{children}</DialogTrigger>
+				<DialogTrigger key={id + open.toString()} className="w-full">{children}</DialogTrigger>
 				<DialogContent className="md:min-w-[760px] lg:min-w-[1000px] w-full max-h-[90dvh] h-full overflow-y-auto">
 					<VisuallyHidden.Root>
 						<DialogTitle>Menu</DialogTitle>
@@ -51,7 +51,7 @@ export function FileModalView({
 
 	return (
 		<Drawer open={open} onOpenChange={handleOpenChange}>
-			<DrawerTrigger key={id} className="w-full">{children}</DrawerTrigger>
+			<DrawerTrigger key={id + open.toString()} className="w-full">{children}</DrawerTrigger>
 			<DrawerContent className="max-h-[90dvh] h-full">
 				<VisuallyHidden.Root>
 					<DialogTitle>Menu</DialogTitle>

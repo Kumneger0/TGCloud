@@ -27,12 +27,23 @@ export function getVideoCodec(mimeType: string) {
 	return mimeCodec;
 }
 
-export const streamVideoToMediaSource = async (
+
+
+
+type StreamMediaArgs = {
 	client: TelegramClient,
 	media: Message['media'],
 	mimeType: string,
-	setURL: Dispatch<SetStateAction<string | undefined>>
+	setURL: Dispatch<SetStateAction<string | undefined>>,
+}
+
+export const streamMedia = async (
+	{ client, media, mimeType, setURL }: StreamMediaArgs
 ) => {
+	if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
+		return streamDirectAudio(client, media, mimeType, setURL);
+	}
+
 	const mediaSource = new MediaSource();
 	const url = URL.createObjectURL(mediaSource);
 	setURL(url);
@@ -41,7 +52,7 @@ export const streamVideoToMediaSource = async (
 		return streamWebM(client, media, mediaSource, mimeType);
 	}
 
-	return streamMP4(client, media, mediaSource);
+	return streamMP4(client, media, mediaSource, mimeType.startsWith('audio/') ? "audio" : "video");
 };
 
 const streamWebM = async (
@@ -80,7 +91,7 @@ const streamWebM = async (
 
 				for await (const chunk of client.iterDownload({
 					file: media as unknown as Api.TypeMessageMedia,
-					requestSize: 512 * 1024,
+					requestSize: 1024 * 1024,
 				})) {
 					if (mediaSource.readyState !== 'open') break;
 					const buffer = new Uint8Array(chunk as unknown as ArrayBuffer);
@@ -111,17 +122,103 @@ const streamWebM = async (
 	});
 };
 
+const streamDirectAudio = async (
+	client: TelegramClient,
+	media: Message['media'],
+	mimeType: string,
+	setURL: Dispatch<SetStateAction<string | undefined>>
+) => {
+	if (MediaSource.isTypeSupported(mimeType)) {
+		const mediaSource = new MediaSource();
+		const url = URL.createObjectURL(mediaSource);
+		setURL(url);
+
+		return new Promise<void>((resolve, reject) => {
+			const onSourceOpen = async () => {
+				if (mediaSource.readyState !== 'open') return;
+				mediaSource.removeEventListener('sourceopen', onSourceOpen);
+
+				try {
+					const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+					const queue: Uint8Array[] = [];
+					let isAppending = false;
+
+					const processQueue = () => {
+						if (!isAppending && queue.length > 0 && !sourceBuffer.updating) {
+							isAppending = true;
+							try {
+								sourceBuffer.appendBuffer(queue.shift()! as BufferSource);
+							} catch (e) {
+								console.error('Error appending audio buffer:', e);
+							}
+						}
+					};
+
+					sourceBuffer.addEventListener('updateend', () => {
+						isAppending = false;
+						processQueue();
+					});
+
+					sourceBuffer.addEventListener('error', (e) => {
+						console.error('SourceBuffer error:', e);
+					});
+
+
+					for await (const chunk of client.iterDownload({
+						file: media as unknown as Api.TypeMessageMedia,
+						requestSize: 512 * 1024,
+					})) {
+						if (mediaSource.readyState !== 'open') break;
+
+						let buffer: Uint8Array;
+						if (chunk instanceof ArrayBuffer) {
+							buffer = new Uint8Array(chunk);
+						} else if (ArrayBuffer.isView(chunk)) {
+							buffer = new Uint8Array(chunk.buffer, chunk.byteOffset, chunk.byteLength);
+						} else {
+							buffer = new Uint8Array(chunk as unknown as ArrayLike<number>);
+						}
+
+						queue.push(buffer);
+						processQueue();
+					}
+
+					const checkEnd = setInterval(() => {
+						if (queue.length === 0 && !sourceBuffer.updating) {
+							clearInterval(checkEnd);
+							if (mediaSource.readyState === 'open') {
+								mediaSource.endOfStream();
+							}
+							resolve();
+						}
+					}, 100);
+
+				} catch (err) {
+					console.error('error in audio streaming:', err);
+					if (mediaSource.readyState === 'open') {
+						mediaSource.endOfStream('decode');
+					}
+					reject(err);
+				}
+			};
+
+			mediaSource.addEventListener('sourceopen', onSourceOpen);
+		});
+	}
+};
+
 const streamMP4 = async (
 	client: TelegramClient,
 	media: Message['media'],
-	mediaSource: MediaSource
+	mediaSource: MediaSource,
+	type: "audio" | "video"
 ) => {
 	return new Promise<void>((resolve, reject) => {
 		const mp4boxfile = MP4Box.createFile();
 		let sourceBuffer: SourceBuffer | null = null;
 
-		const fileSize = (media as any).document?.size?.value 
-			? Number((media as any).document.size.value) 
+		const fileSize = (media as any).document?.size?.value
+			? Number((media as any).document.size.value)
 			: Infinity;
 
 		mp4boxfile.onError = (e: any) => {
@@ -148,9 +245,10 @@ const streamMP4 = async (
 			const durationInSeconds = info.duration / info.timescale;
 			mediaSource.duration = durationInSeconds;
 
-			const track = info.tracks.find((t) => t.type === 'video');
+			const track = info.tracks.find((t) => t.type === type);
 			if (track) {
-				const mime = `video/mp4; codecs="${track.codec}"`;
+				const mime = `${type}/mp4; codecs="${track.codec}"`;
+
 				if (MediaSource.isTypeSupported(mime)) {
 					try {
 						sourceBuffer = mediaSource.addSourceBuffer(mime);
@@ -161,7 +259,7 @@ const streamMP4 = async (
 						sourceBuffer.addEventListener('error', (e) => console.error('SourceBuffer error:', e));
 
 						mp4boxfile.setSegmentOptions(track.id, sourceBuffer, { nbSamples: 20 });
-						const initSegs = mp4boxfile.initializeSegmentation();	
+						const initSegs = mp4boxfile.initializeSegmentation();
 						queue.push(initSegs.buffer);
 						processQueue();
 						mp4boxfile.start();
@@ -209,6 +307,9 @@ const streamMP4 = async (
 						offset: bigInt(offset),
 						requestSize: size,
 					})) {
+						console.log('fetching')
+						console.log('fetching')
+						console.log('fetching')
 						let arrayBuffer: ArrayBuffer;
 						if (chunk instanceof ArrayBuffer) {
 							arrayBuffer = chunk;
@@ -226,8 +327,8 @@ const streamMP4 = async (
 				};
 
 				let currentOffset = 0;
-				let processedUpTo = 0; 
-				const chunkSize = 1024 * 1024;
+				let processedUpTo = 0;
+				const chunkSize = 512 * 1024;
 
 				while (mediaSource.readyState === 'open') {
 					const buffer = await fetchChunk(currentOffset, chunkSize);

@@ -44,7 +44,7 @@ const MiniAudioPlayer = React.memo(() => {
 	}, [isPlaying]);
 
 	const handleTimeUpdate = useDebouncedCallback((e: SyntheticEvent<HTMLAudioElement>) => {
-		console.log('handleTimeUpdate', e.currentTarget.currentTime);
+		console.log('handleTimeUpdate', e.currentTarget?.currentTime);
 		if (audioRef.current) {
 			setProgress(audioRef.current.currentTime);
 		}

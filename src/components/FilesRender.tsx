@@ -22,7 +22,6 @@ import {
 	MediaSize,
 	removeCachedFile
 } from '@/lib/utils';
-import { streamVideoToMediaSource } from '@/lib/video-stream';
 import fluidPlayer from 'fluid-player';
 import { Minimize2, Play, Share2, TrashIcon } from 'lucide-react';
 import Image from 'next/image';
@@ -57,39 +56,7 @@ import { useGlobalStore } from '@/store/global-store';
 import React from 'react';
 import Swal from 'sweetalert2';
 import { TelegramClient } from 'telegram';
-
-export function showSharableURL(url: string) {
-	Swal.fire({
-		title: 'Your Sharable Link',
-		html: `
-      <div>
-        <input id="sharable-url" class="swal2-input" value="${url}" readonly>
-        <button id="copy-button" class="swal2-confirm swal2-styled" style="margin-top: 10px;">Copy Link</button>
-      </div>
-    `,
-		showConfirmButton: false,
-		didOpen: () => {
-			const copyButton = document.getElementById('copy-button');
-			const sharableUrlInput = document.getElementById('sharable-url') as HTMLInputElement;
-
-			copyButton?.addEventListener('click', async () => {
-				sharableUrlInput.select();
-				const sharableURL = sharableUrlInput?.value;
-				try {
-					await navigator.clipboard.writeText(sharableURL);
-					Swal.fire({
-						icon: 'success',
-						title: 'Copied!',
-						showConfirmButton: false,
-						timer: 1500
-					});
-				} catch (err) {
-					console.error(err);
-				}
-			});
-		}
-	});
-}
+import { streamMedia } from '@/lib/video-stream';
 
 function Files({
 	user,
@@ -177,7 +144,7 @@ function Files({
 				);
 				setCanWeAccessTGChannel(!!result);
 			} catch (err) {
-				console.error('Error in Files main connection useEffect:', err);
+				console.error('error in files main connection useEffect:', err);
 				setCanWeAccessTGChannel(false);
 			} finally {
 				setIsConnecting(false);
@@ -346,7 +313,7 @@ function Files({
 		);
 	}
 
-	if (isSwitchingFolder || isConnecting) {
+	if (isSwitchingFolder || isConnecting || !client) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -492,10 +459,6 @@ function DeleteAllFiles({
 }
 
 export default Files;
-
-const addBotToChannel = async (client: TelegramClient, user: User) => {
-	if (!user?.channelId || !user.accessHash) throw Error('Failed to create sharable url');
-};
 
 const filePlaceholderObj = {
 	image: '/image-placeholder.png',
@@ -662,24 +625,6 @@ const EachFile = React.memo(function EachFile({
 			Icon: Trash2Icon,
 			className:
 				'flex items-center text-red-500 gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-red-600'
-		},
-		{
-			actionName: 'share',
-			onClick: async () => {
-				try {
-					await withTelegramConnection(client, async (client) => {
-						await addBotToChannel(client, user);
-					});
-					const result = await shareFile({ fileID: file.fileTelegramId });
-					const url = `${location.host}/share/${result?.[0].id}`;
-					showSharableURL(url);
-				} catch (err) {
-					console.error(err);
-				}
-			},
-			Icon: Share2 as typeof Trash2Icon,
-			className:
-				'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted '
 		}
 	];
 
@@ -709,7 +654,6 @@ const EachFile = React.memo(function EachFile({
 							<a href="mailto:tgcloud-support@kumneger.dev" className="underline">
 								contact us
 							</a>
-							.
 						</p>
 					</div>
 				)}
@@ -750,6 +694,7 @@ const EachFile = React.memo(function EachFile({
 					) : null}
 					{file.category.startsWith('audio') ? (
 						<FileModalView
+							key={file.id + 'audio'}
 							id={file.id}
 							ItemThatWillShowOnModal={() => (
 								<AudioMediaView
@@ -828,14 +773,17 @@ const VideoMediaView = React.memo(({
 			});
 
 			await withTelegramConnection(client, async (client) => {
-				await streamVideoToMediaSource(
+				await streamMedia({
 					client,
-					message as Message['media'],
-					fileData.mimeType,
+					media: message as Message['media'],
+					mimeType: fileData.mimeType,
 					setURL
+				}
 				);
 			});
-		})();
+		})().catch((err) => {
+			console.error('Unhandled rejection in AudioMediaView effect:', err);
+		})
 
 		if (!playerRef.current) {
 			playerRef.current = fluidPlayer(self.current!, {
@@ -952,35 +900,37 @@ function AudioMediaView({
 }) {
 	const [duration, setDuration] = useState<number | null>(null);
 	const audioRef = useRef<HTMLAudioElement>(null);
-	const [blobURL, setBlobURL] = useState<string>('');
+	const [blobURL, setBlobURL] = useState<string | undefined>(undefined);
 	const setMiniPlayerAudio = useGlobalStore((state) => state.setMiniPlayerAudio);
 	const miniPlayerAudio = useGlobalStore((state) => state.miniPlayerAudio);
 
 	useEffect(() => {
 		(async () => {
-			try {
-				await withTelegramConnection(client, async (client) => {
-					await downloadMedia(
-						{
-							category: 'audio',
-							setURL: setBlobURL,
-							user,
-							messageId: fileData.fileTelegramId,
-							size: 'large'
-						},
-						client
-					);
-					if (!blobURL) {
-						// Note: blobURL check might be unreliable if setURL is async, 
-						// but keeping the logic consistent for now while adding the try/catch
-					}
+			const message = await withTelegramConnection(client, async (client) => {
+				const message = await getMessage({
+					client,
+					messageId: fileData.fileTelegramId,
+					user: user as NonNullable<User>
 				});
-			} catch (err) {
-				console.error('Error downloading audio file:', err);
-			}
-		})().catch(err => {
+
+				if (!message) {
+					throw new Error('Failed to get message');
+				}
+				return message;
+			});
+
+			await withTelegramConnection(client, async (client) => {
+				await streamMedia({
+					client,
+					media: message as Message['media'],
+					mimeType: fileData.mimeType,
+					setURL: setBlobURL
+				}
+				);
+			});
+		})().catch((err) => {
 			console.error('Unhandled rejection in AudioMediaView effect:', err);
-		});
+		})
 
 		if (miniPlayerAudio) {
 			setMiniPlayerAudio &&
@@ -1018,7 +968,7 @@ function AudioMediaView({
 		setMiniPlayerAudio &&
 			setMiniPlayerAudio({
 				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-				blobURL,
+				blobURL: blobURL ?? " ",
 				isPlaying: true,
 				currentTime,
 				duration,
@@ -1027,40 +977,6 @@ function AudioMediaView({
 				fileTelegramId: fileData.fileTelegramId
 			});
 	};
-
-	if (Number(fileData.size) > 5 * 1024 * 1024) {
-		return (
-			<div className="flex flex-col h-full">
-				<div className="flex-1 overflow-y-auto">
-					<div className="relative aspect-square flex flex-col items-center justify-center gap-4 bg-muted rounded-t-lg p-6">
-						<Image
-							src="/audio-placeholder.svg"
-							alt={fileData.fileName}
-							width={192}
-							height={192}
-							className="object-contain w-32 h-32"
-						/>
-						<div className="text-center space-y-4">
-							<h3 className="text-lg font-medium">Audio file too large to preview</h3>
-							<p className="text-sm text-muted-foreground">
-								We can&lsquo;t play files larger than 5mb. Please download the file to play it.
-							</p>
-						</div>
-						<div className="flex flex-col gap-2 text-sm text-muted-foreground">
-							<div className="flex items-center gap-2">
-								<span>File Name:</span>
-								<span>{fileData.fileName}</span>
-							</div>
-							<div className="flex items-center gap-2">
-								<AudioIcon className="w-4 h-4" />
-								<span>Size: {formatBytes(Number(fileData.size))}</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		);
-	}
 
 	return (
 		<div className="flex flex-col h-full">
