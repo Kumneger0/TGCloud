@@ -97,6 +97,9 @@ function Files({
 				const telegramClient = await getTgClient(getTgClientArgs);
 
 				if (telegramClient) {
+					if (!telegramClient?.connected) await telegramClient.connect()
+					const whoAmI = await telegramClient.getMe()
+					console.log(whoAmI)
 					return telegramClient
 				}
 
@@ -462,10 +465,10 @@ const EachFile = React.memo(function EachFile({
 	}, [])
 
 
+
+
 	const url = largeURL ?? data?.url
 	const notFound = data?.notFound || videoData?.notFound
-	const thumbnail = videoData?.thumbnail || getFilePlaceholder(file)
-
 	const router = useRouter()
 
 	const fileContextMenuActions = [
@@ -580,7 +583,7 @@ const EachFile = React.memo(function EachFile({
 							}
 						>
 							<div className="w-full h-full min-w-full flex-1 relative">
-								<ImageRender fileName={file.fileName} url={thumbnail ?? ""} />
+								<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ""} />
 								<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
 									<Play className="text-black bg-white p-2 rounded-full h-14 w-14" />
 								</div>
@@ -601,7 +604,7 @@ const EachFile = React.memo(function EachFile({
 								/>
 							}
 						>
-							<ImageRender fileName={file.fileName} url={thumbnail ?? ""} />
+							<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ""} />
 						</FileModalView>
 					) : null}
 				</div>
@@ -839,62 +842,29 @@ function AudioMediaView({
 		}
 	})
 
-	console.log('blob url', blobURL);
-	console.log('blob url', blobURL);
-	console.log('blob url', blobURL);
-	console.log('blob url', blobURL);
-	console.log('blob url', blobURL);
-
-
-	// useEffect(() => {
-	// 	(async () => {
-	// 		const message = await withTelegramConnection(client, async (client) => {
-	// 			const message = await getMessage({
-	// 				client,
-	// 				messageId: fileData.fileTelegramId,
-	// 				user: user as NonNullable<User>
-	// 			});
-
-	// 			if (!message) {
-	// 				throw new Error('Failed to get message');
-	// 			}
-	// 			return message;
-	// 		});
-
-	// 		await withTelegramConnection(client, async (client) => {
-	// 			const url = await streamMedia({
-	// 				client,
-	// 				media: message as Message['media'],
-	// 				mimeType: fileData.mimeType,
-	// 			})
-	// 			setBlobURL(url);
-	// 		});
-	// 	})().catch((err) => {
-	// 		console.error('Unhandled rejection in AudioMediaView effect:', err);
-	// 	})
-
-	// 	if (miniPlayerAudio) {
-	// 		setMiniPlayerAudio &&
-	// 			setMiniPlayerAudio({
-	// 				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-	// 				blobURL: miniPlayerAudio.blobURL,
-	// 				isPlaying: false,
-	// 				progress: miniPlayerAudio?.progress ?? 0,
-	// 				duration: miniPlayerAudio?.duration ?? 0,
-	// 				currentTime: miniPlayerAudio?.currentTime ?? 0,
-	// 				isMinimized: false,
-	// 				fileTelegramId: fileData.fileTelegramId
-	// 			});
-	// 		if (audioRef.current && miniPlayerAudio.fileTelegramId === fileData.fileTelegramId) {
-	// 			audioRef.current.onloadedmetadata = () => {
-	// 				audioRef.current!.currentTime = miniPlayerAudio.currentTime;
-	// 			};
-	// 		}
-	// 	}
-	// 	return () => {
-	// 		audioRef.current = null;
-	// 	};
-	// }, []);
+	useEffect(() => {
+		if (miniPlayerAudio && blobURL) {
+			setMiniPlayerAudio &&
+				setMiniPlayerAudio({
+					fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
+					blobURL: blobURL,
+					isPlaying: false,
+					progress: miniPlayerAudio?.progress ?? 0,
+					duration: miniPlayerAudio?.duration ?? 0,
+					currentTime: miniPlayerAudio?.currentTime ?? 0,
+					isMinimized: false,
+					fileTelegramId: fileData.fileTelegramId
+				});
+			if (audioRef.current && miniPlayerAudio.fileTelegramId === fileData.fileTelegramId) {
+				audioRef.current.onloadedmetadata = () => {
+					audioRef.current!.currentTime = miniPlayerAudio.currentTime;
+				};
+			}
+		}
+		return () => {
+			audioRef.current = null;
+		};
+	}, []);
 
 	const handleLoadedMetadata = () => {
 		if (audioRef.current) {
@@ -906,10 +876,10 @@ function AudioMediaView({
 		const duration = audioRef.current?.duration ?? 0;
 		const progress = currentTime / duration;
 		const result = document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-		setMiniPlayerAudio &&
+		setMiniPlayerAudio && blobURL &&
 			setMiniPlayerAudio({
 				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-				blobURL: blobURL ?? " ",
+				blobURL: blobURL,
 				isPlaying: true,
 				currentTime,
 				duration,

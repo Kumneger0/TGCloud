@@ -4,20 +4,18 @@ import Message, { FileItem, MessageMediaPhoto } from '@/lib/types';
 import { UploadProgress } from '@/store/global-store';
 import { type ClassValue, clsx } from 'clsx';
 import { ReadonlyURLSearchParams } from 'next/navigation';
-import { Dispatch, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
 import { Api, TelegramClient } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
-import { ChannelDetails, User } from './types';
 import { TELEGRAM_ERRORS } from './consts';
-import { getCode, getPassword, getPhoneNumber } from './telegramAuthHelpers';
 import { errorToast } from './notify';
+import { getCode, getPassword, getPhoneNumber } from './telegramAuthHelpers';
+import { ChannelDetails, User } from './types';
 
 export type MediaSize = 'large' | 'small';
 export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
-
 
 export const QUERY_KEYS = {
 	audio: (id: number) => `audio-media-view-${id}`,
@@ -31,7 +29,6 @@ interface DownloadMediaOptions {
 	user: NonNullable<User>;
 	messageId: number | string;
 	size: MediaSize;
-	// setURL: Dispatch<SetStateAction<string>>;
 	category: MediaCategory;
 	isShare?: boolean;
 }
@@ -326,27 +323,23 @@ export const downloadMedia = async (
 
 	const { fileLgCacheKey, fileSmCacheKey } = getCacheKey(user.channelId, messageId, category);
 	const fileLg = await getCachedFile(fileLgCacheKey);
-	if (fileLg) {
+	if (fileLg && size === 'large') {
 		const blob = fileLg.data;
 		const url = URL.createObjectURL(blob);
 		return { blob, url }
 	}
 
 	const fileSm = await getCachedFile(fileSmCacheKey);
-	if (fileSm) {
+	if (fileSm && size === 'small') {
 		const blob = fileSm.data;
 		const url = URL.createObjectURL(blob);
 		return { blob, url }
 	}
-
 	if (typeof client === 'string') return null;
-
 	const media = await getMessage({ client, messageId, user });
 	if (!media) return { notFound: false, blob: undefined, url: undefined };
 
 	try {
-		if (category === 'video')
-			return await handleVideoDownload(client, media as Message['media'], async (chunk) => { });
 		if (media)
 			return await handleMediaDownload(
 				client,
@@ -356,24 +349,6 @@ export const downloadMedia = async (
 			);
 	} catch (err) {
 		console.error(err);
-	}
-
-	return null;
-};
-
-export const handleVideoDownload = async (
-	client: TelegramClient,
-	media: Message['media'],
-	setURL: Dispatch<SetStateAction<string | undefined>>
-) => {
-	for await (const buffer of client.iterDownload({
-		file: media as unknown as Api.TypeMessageMedia,
-		requestSize: 512 * 1024
-	})) {
-		const blob = new Blob([buffer as BlobPart]);
-		const url = URL.createObjectURL(blob);
-		setURL(url);
-		break;
 	}
 
 	return null;
