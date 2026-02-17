@@ -1,12 +1,14 @@
 'use client';
 
 import { saveTelegramCredentials } from '@/actions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/db';
 import { getTgClient } from '@/lib/getTgClient';
-import { errorToast } from '@/lib/notify';
-import { EntityLike } from 'telegram/define';
+import { loginInTelegram } from '@/lib/utils';
+import { useGlobalStore } from '@/store/global-store';
+import { AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useCallback, useRef, useState } from 'react';
@@ -14,15 +16,12 @@ import { useFormStatus } from 'react-dom';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import { Api } from 'telegram';
+import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Info, ShieldCheck } from 'lucide-react';
-import { useGlobalStore } from '@/store/global-store';
-import { getCode, getPassword, getPhoneNumber } from '@/lib/telegramAuthHelpers';
 
 interface Result {
 	chats?: {
@@ -76,19 +75,21 @@ export default function Component({ user }: Props) {
 			setIsUserLoading(true);
 
 			let newSession: string | undefined;
-			if (!session) {
-				newSession = await loginInTelegram();
-				if (!newSession) {
-					setIsUserLoading(false);
-					return;
-				}
-			}
 
 			const clientInstance = await getClient();
 			if (!clientInstance) {
 				toast.error('Failed to initialize Telegram client');
 				return;
 			}
+
+			if (!session) {
+				newSession = await loginInTelegram(clientInstance);
+				if (!newSession) {
+					setIsUserLoading(false);
+					return;
+				}
+			}
+
 			if (!clientInstance?.connected) {
 				await clientInstance?.connect();
 			}
@@ -160,32 +161,6 @@ export default function Component({ user }: Props) {
 			setIsUserLoading(false);
 		}
 	}
-
-	async function loginInTelegram() {
-		try {
-			const clientInstance = await getClient();
-			if (!clientInstance) return;
-
-			await clientInstance?.start({
-				phoneNumber: async () => await getPhoneNumber(),
-				password: async () => await getPassword(),
-				phoneCode: async () => await getCode(),
-				onError: (err) => errorToast(err?.message)
-			});
-
-			const session = clientInstance?.session.save() as unknown as string;
-			return session;
-		} catch (err) {
-			if (err && typeof err == 'object' && 'message' in err) {
-				Swal.fire({
-					title: 'Failed to login',
-					text: (err?.message as string) ?? 'There was an error',
-					icon: 'error'
-				});
-			}
-		}
-	}
-
 	async function createTelegramChannel(clientInstance: Api.Client) {
 		try {
 			const channelTitle = user?.name ? `${user?.name}Drive` : 'TGCloudDrive';

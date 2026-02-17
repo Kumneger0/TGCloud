@@ -5,6 +5,7 @@ import React, { Dispatch, SetStateAction, useMemo, useState, useTransition } fro
 import { env } from '../env';
 import { FileItem } from './types';
 import { ProgressProvider } from '@bprogress/next/app';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -17,12 +18,16 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
 	return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
 }
 
+const queryClient = new QueryClient()
+
 const Providers = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<>
-			<ProgressProvider height="4px" color="#f00" options={{ showSpinner: false }} shallowRouting>
-				{children}
-			</ProgressProvider>
+			<QueryClientProvider client={queryClient}>
+				<ProgressProvider height="4px" color="#f00" options={{ showSpinner: false }} shallowRouting>
+					{children}
+				</ProgressProvider>
+			</QueryClientProvider>
 		</>
 	);
 };

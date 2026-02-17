@@ -507,8 +507,16 @@ export const requireUserAuthentication = async () => {
 	if (!user) {
 		redirect('/login')
 	}
+
+	const telegramSession = (await cookies()).get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value
+	const authType = user.authType
+
 	const hasNotHaveNeccessaryDetails = !user?.accessHash || !user?.channelId;
-	if (hasNotHaveNeccessaryDetails) return redirect('/connect-telegram');
+
+	const shouldGoToConnectTelegeramPage = (authType == 'user' && !telegramSession) || hasNotHaveNeccessaryDetails
+
+
+	if (shouldGoToConnectTelegeramPage) return redirect('/connect-telegram');
 	return user;
 };
 
