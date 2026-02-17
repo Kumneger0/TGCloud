@@ -522,8 +522,6 @@ const EachFile = React.memo(function EachFile({
 		}
 	];
 
-	console.log('file category', file.category);
-
 	return (
 		<FileContextMenu fileContextMenuActions={fileContextMenuActions}>
 			<Card
@@ -807,7 +805,6 @@ function AudioMediaView({
 }) {
 	const [duration, setDuration] = useState<number | null>(null);
 	const audioRef = useRef<HTMLAudioElement>(null);
-	// const [blobURL, setBlobURL] = useState<string | undefined>(undefined);
 	const setMiniPlayerAudio = useGlobalStore((state) => state.setMiniPlayerAudio);
 	const miniPlayerAudio = useGlobalStore((state) => state.miniPlayerAudio);
 
@@ -843,6 +840,11 @@ function AudioMediaView({
 	})
 
 	useEffect(() => {
+		setTimeout(() => {
+			if (audioRef.current) {
+				setDuration(audioRef.current?.duration)
+			}
+		}, 10000)
 		if (miniPlayerAudio && blobURL) {
 			setMiniPlayerAudio &&
 				setMiniPlayerAudio({
@@ -866,11 +868,6 @@ function AudioMediaView({
 		};
 	}, []);
 
-	const handleLoadedMetadata = () => {
-		if (audioRef.current) {
-			setDuration(audioRef.current.duration);
-		}
-	};
 	const handleMinimize = () => {
 		const currentTime = audioRef.current?.currentTime ?? 0;
 		const duration = audioRef.current?.duration ?? 0;
@@ -920,7 +917,6 @@ function AudioMediaView({
 						src={blobURL || undefined}
 						className="w-full mt-2"
 						autoPlay
-						onLoadedMetadata={handleLoadedMetadata}
 					/>
 					<div className="flex flex-col gap-2 mt-4 text-muted-foreground text-sm">
 						<div className="flex items-center gap-2">
