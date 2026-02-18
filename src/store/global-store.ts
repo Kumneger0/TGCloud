@@ -31,6 +31,8 @@ type GlobalStoreType = {
 	setIsSwitchingFolder: (value: boolean) => void;
 	uploadProgress: UploadProgress | undefined;
 	setUploadProgress: (uploadProgress: UploadProgress | undefined) => void;
+	canAccessChannel: boolean;
+	setCanAccessChannel: (value: boolean) => void;
 	botRateLimit: {
 		isRateLimited: boolean;
 		retryAfter: number;
@@ -55,9 +57,10 @@ export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
 	setIsSwitchingFolder: (value) => set({ isSwitchingFolder: value }),
 	uploadProgress: undefined,
 	setUploadProgress: (uploadProgress) => set({ uploadProgress }),
+	canAccessChannel: false,
+	setCanAccessChannel: (value) => set({ canAccessChannel: value }),
 	botRateLimit: { isRateLimited: false, retryAfter: 0 },
 	setBotRateLimit: (botRateLimit) => set({ botRateLimit }),
-
 	audioPlayer: null,
 	setAudioPlayer: (state) => set({ audioPlayer: state }),
 	updateAudioPlayer: (partial) => {

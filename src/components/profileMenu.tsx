@@ -11,13 +11,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { auth } from '@/lib/auth';
 import { ChevronsUpDown, HelpCircle, LogOut } from 'lucide-react';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AddNewBotTokenDialog } from './addNewBotToken';
+import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
 
 export default async function ProfileMenu() {
 	const user = await getUser();
+	const cookieStore = await cookies()
 
 	return (
 		<DropdownMenu>
@@ -73,6 +75,7 @@ export default async function ProfileMenu() {
 							const logoutResult = await auth.api.signOut({
 								headers: await headers()
 							});
+							cookieStore.delete(USER_TELEGRAM_SESSION_COOKIE_NAME);
 							if (logoutResult.success) {
 								redirect('/login');
 							}
