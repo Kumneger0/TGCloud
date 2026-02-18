@@ -10,6 +10,7 @@ import { promiseToast } from '@/lib/notify';
 import { withTelegramConnection } from '@/lib/telegramMutex';
 import Message, { FileItem, FilesData, GetAllFilesReturnType, User } from '@/lib/types';
 import {
+	canWeAccessTheChannel,
 	deleteItem,
 	downloadMedia,
 	formatBytes,
@@ -41,18 +42,7 @@ import FileContextMenu from './fileContextMenu';
 import { FileModalView } from './fileModalView';
 import Upload from './uploadWrapper';
 
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger
-} from '@/components/ui/alert-dialog';
-
+import { useGlobalModal } from '@/store/global-modal';
 import { streamMedia } from '@/lib/video-stream';
 import { useGlobalStore } from '@/store/global-store';
 import { useQuery } from '@tanstack/react-query';
@@ -82,6 +72,7 @@ function Files({
 	const [error, setError] = useState<string | null>(null)
 	const [isPending, setIsPending] = useState(true)
 	const client = useGlobalStore(s => s.client)
+	const { closeModal, openModal } = useGlobalModal()
 
 	useEffect(() => {
 		setUser(user)
@@ -106,6 +97,37 @@ function Files({
 					if (!telegramClient?.connected) await telegramClient.connect()
 					const whoAmI = await telegramClient.getMe()
 					console.log(whoAmI)
+
+					const canAccess = await withTelegramConnection(telegramClient, (client) =>
+						canWeAccessTheChannel(client, user)
+					)
+
+					if (!canAccess) {
+						openModal({
+							forceDialog: true,
+							content: (
+								<div className="flex flex-col items-center gap-4 py-4 text-center">
+									<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+										<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+									</div>
+									<div className="space-y-1">
+										<h3 className="text-lg font-semibold">Channel Access Denied</h3>
+										<p className="text-sm text-muted-foreground max-w-xs">
+											We couldn&apos;t access your Telegram channel. Make sure the bot or account is still an admin of the channel.
+										</p>
+									</div>
+									<Button
+										variant="outline"
+										className="mt-2"
+										onClick={() => { closeModal(); router.push('/'); }}
+									>
+										Go to Home
+									</Button>
+								</div>
+							)
+						})
+						return
+					}
 					setClient(telegramClient)
 				}
 
@@ -114,6 +136,35 @@ function Files({
 				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : "Failed to connnect to telegram"
+				if (message.includes('AUTH_KEY_DUPLICATED')) {
+					openModal({
+						forceDialog: true,
+						content: (
+							<div className="flex flex-col items-center gap-4 py-4 text-center">
+								<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+									<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+								</div>
+								<div className="space-y-1">
+									<h3 className="text-lg font-semibold">Telegram Session Duplicated</h3>
+									<p className="text-sm text-muted-foreground max-w-xs">
+										You need to login with this telegram account again.
+									</p>
+								</div>
+								<Button
+									className="mt-2 w-full"
+									disabled={isUserLoading}
+									onClick={() => {
+										setIsUserLoading(true)
+										connectTelegramUser();
+									}}
+								>
+									{isUserLoading ? 'Connecting...' : 'Reconnect Account'}
+								</Button>
+							</div>
+						)
+					})
+					return
+				}
 				setError(message)
 			} finally {
 				setIsPending(false)
@@ -123,8 +174,6 @@ function Files({
 		getClient()
 
 	}, [user.telegramSession, user.authType]);
-
-
 
 	const [isUserLoading, setIsUserLoading] = useState(false);
 	const router = useRouter();
@@ -384,23 +433,41 @@ function DeleteAllFiles({
 	children: React.ReactNode;
 	deleteFn: () => Promise<void>;
 }) {
+	const { openModal, closeModal } = useGlobalModal();
+
+	const handleClick = () => {
+		openModal({
+			title: 'Are you absolutely sure?',
+			forceDialog: true,
+			content: (
+				<div className="space-y-6">
+					<p className="text-sm text-muted-foreground">
+						This action cannot be undone. This will permanently delete all selected files from your
+						Telegram channel.
+					</p>
+					<div className="flex justify-end gap-3">
+						<Button variant="outline" onClick={closeModal}>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							onClick={async () => {
+								closeModal();
+								await deleteFn();
+							}}
+						>
+							Continue
+						</Button>
+					</div>
+				</div>
+			)
+		});
+	};
+
 	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>{children}</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-					<AlertDialogDescription>
-						This action cannot be undone. This will permanently delete all files from your Telegram
-						channel.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction onClick={async () => await deleteFn()}>Continue</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
+		<div onClick={handleClick}>
+			{children}
+		</div>
 	);
 }
 

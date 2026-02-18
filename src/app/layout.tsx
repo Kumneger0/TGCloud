@@ -9,6 +9,7 @@ import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
 import Providers, { CSPostHogProvider } from '@/lib/context';
 import { Toaster } from 'react-hot-toast';
+import { GlobalModal } from '@/components/GlobalModal';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -67,6 +68,7 @@ export default async function RootLayout({
 							<RecentUpdate />
 							{children}
 							<GlobalAudioPlayer />
+							<GlobalModal />
 							<MiniAudioPlayer />
 						</ThemeProvider>
 					</Providers>
