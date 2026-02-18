@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import '../../patch-global-alert-polyfill';
 import './globals.css';
 
+import GlobalAudioPlayer from '@/components/GlobalAudioPlayer';
 import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -65,6 +66,7 @@ export default async function RootLayout({
 						>
 							<RecentUpdate />
 							{children}
+							<GlobalAudioPlayer />
 							<MiniAudioPlayer />
 						</ThemeProvider>
 					</Providers>

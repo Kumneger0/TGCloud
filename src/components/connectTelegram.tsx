@@ -46,7 +46,7 @@ const errors = {
 
 
 interface Props {
-	user: NonNullable<Awaited<ReturnType<typeof db.query.usersTable.findFirst>>>;
+	user: NonNullable<Awaited<ReturnType<typeof db.query.usersTable.findFirst>>> & { telegramSession: string | null };
 }
 
 export default function Component({ user }: Props) {
@@ -55,7 +55,6 @@ export default function Component({ user }: Props) {
 	const [activeTab, setActiveTab] = useState<'bot' | 'user'>('user');
 	const [isUserLoading, setIsUserLoading] = useState(false);
 
-	const session = useGlobalStore((state) => state.telegramSession);
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
 	const clientPromiseRef = useRef<ReturnType<typeof getTgClient> | null>(null);
@@ -63,12 +62,12 @@ export default function Component({ user }: Props) {
 	const getClient = useCallback(async () => {
 		if (!clientPromiseRef.current) {
 			clientPromiseRef.current = getTgClient({
-				stringSession: session ?? '',
+				stringSession: user.telegramSession ?? '',
 				authType: 'user'
 			});
 		}
 		return await clientPromiseRef.current;
-	}, [session]);
+	}, [user.telegramSession]);
 
 	async function connectTelegramUser() {
 		try {
@@ -82,7 +81,7 @@ export default function Component({ user }: Props) {
 				return;
 			}
 
-			if (!session) {
+			if (!user.telegramSession) {
 				newSession = await loginInTelegram(clientInstance);
 				if (!newSession) {
 					setIsUserLoading(false);
@@ -94,7 +93,7 @@ export default function Component({ user }: Props) {
 				await clientInstance?.connect();
 			}
 
-			const tgUserSession = newSession ?? session;
+			const tgUserSession = newSession ?? user.telegramSession;
 
 			if (!tgUserSession) {
 				toast.error('There was an error while connecting to telegram');

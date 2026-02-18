@@ -122,8 +122,6 @@ const streamDirectAudio = async (
 	mediaSource: MediaSource
 ) => {
 	if (MediaSource.isTypeSupported(mimeType)) {
-		const url = URL.createObjectURL(mediaSource);
-
 		return new Promise<void>((resolve, reject) => {
 			const onSourceOpen = async () => {
 				if (mediaSource.readyState !== 'open') return;

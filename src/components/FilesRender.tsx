@@ -24,7 +24,7 @@ import {
 	removeCachedFile
 } from '@/lib/utils';
 import fluidPlayer from 'fluid-player';
-import { Minimize2, Play, TrashIcon } from 'lucide-react';
+import { Minimize2, Pause, Play, TrashIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
@@ -77,10 +77,16 @@ function Files({
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
-	const { data: client, isPending, error } = useQuery({
-		queryKey: ["client"],
-		queryFn: async () => {
-			console.log('client')
+	const setUser = useGlobalStore(s => s.setUser)
+	const setClient = useGlobalStore(s => s.setClient)
+	const [error, setError] = useState<string | null>(null)
+	const [isPending, setIsPending] = useState(true)
+	const client = useGlobalStore(s => s.client)
+
+	useEffect(() => {
+		setUser(user)
+		const getClient = async () => {
+			setIsPending(true)
 			const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
 				user.authType === 'user' && user.telegramSession
 					? {
@@ -100,20 +106,25 @@ function Files({
 					if (!telegramClient?.connected) await telegramClient.connect()
 					const whoAmI = await telegramClient.getMe()
 					console.log(whoAmI)
-					return telegramClient
+					setClient(telegramClient)
 				}
 
 				if (!telegramClient) {
-					throw new Error("Failed to connnect to telegram")
+					setError("Failed to connnect to telegram")
 				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : "Failed to connnect to telegram"
-				throw new Error(message)
+				setError(message)
+			} finally {
+				setIsPending(false)
 			}
-
 		}
 
-	})
+		getClient()
+
+	}, [user.telegramSession, user.authType]);
+
+
 
 	const [isUserLoading, setIsUserLoading] = useState(false);
 	const router = useRouter();
@@ -208,14 +219,13 @@ function Files({
 		);
 	}
 
-	const errMessage = error?.message
-	if (errMessage || !client) {
+	if (error || !client) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
 					<h2 className="text-xl font-semibold">Error Connecting to Telegram</h2>
 					<p className="text-muted-foreground">
-						{errMessage ?? "We are having some technical difficulties connecting to telegram. Please try again later."}
+						{error}
 					</p>
 				</div>
 			</div>
@@ -307,17 +317,20 @@ function Files({
 			if (!result) throw Error("there was an error while deleting the files")
 			await Promise.all(
 				selectedFiles.map(async (file) => {
-					const { fileSmCacheKey, fileLgCacheKey } = getCacheKey(
+					const cacheKeys = getCacheKey(
 						user?.channelId as string,
 						file.fileTelegramId as string,
 						file.category as MediaCategory
 					);
-					try {
-						await removeCachedFile(fileSmCacheKey);
-						await removeCachedFile(fileLgCacheKey);
-					} catch (err) {
-						console.error(err);
+					if (cacheKeys) {
+						try {
+							await removeCachedFile(cacheKeys.fileSmCacheKey);
+							await removeCachedFile(cacheKeys.fileLgCacheKey);
+						} catch (err) {
+							console.error(err);
+						}
 					}
+
 					await deleteFile(file.id);
 				})
 			);
@@ -346,7 +359,6 @@ function Files({
 				{sortedFiles?.map((file) => (
 					<div className="relative w-full" key={file.id}>
 						<EachFile
-							client={client}
 							file={file as FileItem}
 							user={user}
 						/>
@@ -397,12 +409,11 @@ export default Files;
 const EachFile = React.memo(function EachFile({
 	file,
 	user,
-	client
 }: {
 	file: FileItem;
-	user: User;
-	client: TelegramClient;
+		user: User;
 }) {
+	const client = useGlobalStore(s => s.client)!
 	const [largeURL, setLargeURL] = useState<string | null>(null)
 	const { data, isPending, error } = useQuery({
 		queryKey: ["file", file.id],
@@ -595,7 +606,6 @@ const EachFile = React.memo(function EachFile({
 							queryKey={QUERY_KEYS.audio(file.id)}
 							modalContent={
 								<AudioMediaView
-									queryKey={QUERY_KEYS.audio(file.id)}
 									fileData={{ ...file, category: 'audio' }}
 									client={client}
 									user={user!}
@@ -791,99 +801,80 @@ function ImagePreviewModal({
 		</div>
 	);
 }
-
 function AudioMediaView({
 	fileData,
-	client,
-	user,
-	queryKey
 }: {
 	fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
-	client: TelegramClient;
-		queryKey: string;
+		client: TelegramClient;
 	user: NonNullable<User>;
 }) {
-	const [duration, setDuration] = useState<number | null>(null);
-	const audioRef = useRef<HTMLAudioElement>(null);
-	const setMiniPlayerAudio = useGlobalStore((state) => state.setMiniPlayerAudio);
-	const miniPlayerAudio = useGlobalStore((state) => state.miniPlayerAudio);
-
-	const { data: blobURL } = useQuery({
-		queryKey: [queryKey],
-		queryFn: async () => {
-			const message = await withTelegramConnection(client, async (client) => {
-				const message = await getMessage({
-					client,
-					messageId: fileData.fileTelegramId,
-					user: user as NonNullable<User>
-				});
-
-				if (!message) {
-					throw new Error('Failed to get message');
-				}
-				return message;
-			});
-
-			const mediaSource = new MediaSource();
-			const url = URL.createObjectURL(mediaSource);
-
-			withTelegramConnection(client, async (client) => {
-				await streamMedia({
-					client,
-					media: message as Message['media'],
-					mimeType: fileData.mimeType,
-					mediaSource
-				})
-			});
-			return url;
-		}
-	})
+	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
+	const setAudioPlayer = useGlobalStore((s) => s.setAudioPlayer);
+	const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
+	const audioRef = useGlobalStore((s) => s.audioRef);
+	const [isPlaying, setIsPlaying] = useState(false);
+	const [currentTime, setCurrentTime] = useState(0);
+	const duration = audioPlayer?.duration
+	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
 
 	useEffect(() => {
-		setTimeout(() => {
-			if (audioRef.current) {
-				setDuration(audioRef.current?.duration)
-			}
-		}, 10000)
-		if (miniPlayerAudio && blobURL) {
-			setMiniPlayerAudio &&
-				setMiniPlayerAudio({
-					fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-					blobURL: blobURL,
-					isPlaying: false,
-					progress: miniPlayerAudio?.progress ?? 0,
-					duration: miniPlayerAudio?.duration ?? 0,
-					currentTime: miniPlayerAudio?.currentTime ?? 0,
-					isMinimized: false,
-					fileTelegramId: fileData.fileTelegramId
-				});
-			if (audioRef.current && miniPlayerAudio.fileTelegramId === fileData.fileTelegramId) {
-				audioRef.current.onloadedmetadata = () => {
-					audioRef.current!.currentTime = miniPlayerAudio.currentTime;
-				};
-			}
-		}
-		return () => {
-			audioRef.current = null;
-		};
-	}, []);
-
-	const handleMinimize = () => {
-		const currentTime = audioRef.current?.currentTime ?? 0;
-		const duration = audioRef.current?.duration ?? 0;
-		const progress = currentTime / duration;
-		const result = document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
-		setMiniPlayerAudio && blobURL &&
-			setMiniPlayerAudio({
-				fileData: { ...fileData, folderId: '0', date: new Date().toISOString() },
-				blobURL: blobURL,
-				isPlaying: true,
-				currentTime,
-				duration,
-				progress,
-				isMinimized: true,
+		if (!isCurrentFile) {
+			setAudioPlayer({
+				fileData: { ...fileData, folderId: '0', date: fileData.date ?? new Date().toISOString() } as FileItem,
+				blobURL: '',
+				isMinimized: false,
+				duration: 0,
 				fileTelegramId: fileData.fileTelegramId
 			});
+		} else {
+			updateAudioPlayer({ isMinimized: false });
+		}
+	}, []);
+
+	useEffect(() => {
+		const el = audioRef?.current;
+		if (!el) return;
+
+		const onPlay = () => setIsPlaying(true);
+		const onPause = () => setIsPlaying(false);
+		const onTimeUpdate = () => setCurrentTime(el.currentTime);
+		const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+
+		el.addEventListener('play', onPlay);
+		el.addEventListener('pause', onPause);
+		el.addEventListener('timeupdate', onTimeUpdate);
+		el.addEventListener('ended', onEnded);
+
+		setIsPlaying(!el.paused);
+		setCurrentTime(el.currentTime);
+		return () => {
+			el.removeEventListener('play', onPlay);
+			el.removeEventListener('pause', onPause);
+			el.removeEventListener('timeupdate', onTimeUpdate);
+			el.removeEventListener('ended', onEnded);
+		};
+	}, [audioRef, audioPlayer?.fileTelegramId]);
+
+	const handlePlayPause = () => {
+		const el = audioRef?.current;
+		if (!el) return;
+		if (el.paused) {
+			el.play().catch(() => { });
+		} else {
+			el.pause();
+		}
+	};
+
+	const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const el = audioRef?.current;
+		if (!el) return;
+		el.currentTime = Number(e.target.value);
+		setCurrentTime(Number(e.target.value));
+	};
+
+	const handleMinimize = () => {
+		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		updateAudioPlayer({ isMinimized: true });
 	};
 
 	return (
@@ -911,25 +902,44 @@ function AudioMediaView({
 						<AudioIcon className="w-6 h-6" />
 						{fileData.fileName}
 					</h3>
-					<audio
-						ref={audioRef}
-						controls
-						src={blobURL || undefined}
-						className="w-full mt-2"
-						autoPlay
-					/>
-					<div className="flex flex-col gap-2 mt-4 text-muted-foreground text-sm">
+
+					<div className="flex flex-col gap-1">
+						<input
+							type="range"
+							min={0}
+							max={duration || 0}
+							value={currentTime}
+							onChange={handleSeek}
+							className="w-full accent-primary"
+						/>
+						<div className="flex justify-between text-xs text-muted-foreground">
+							<span>
+								{Math.floor(currentTime / 60)}:{('0' + Math.floor(currentTime % 60)).slice(-2)}
+							</span>
+							<span>
+								{duration
+									? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)}`
+									: '--:--'}
+							</span>
+						</div>
+					</div>
+
+					{/* Play / Pause */}
+					<div className="flex justify-center">
+						<Button
+							onClick={handlePlayPause}
+							variant="outline"
+							size="icon"
+							className="h-12 w-12 rounded-full"
+						>
+							{isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+						</Button>
+					</div>
+
+					<div className="flex flex-col gap-2 mt-2 text-muted-foreground text-sm">
 						<div className="flex items-center gap-2">
 							<span>Size:</span>
 							<span>{formatBytes(Number(fileData.size))}</span>
-						</div>
-						<div className="flex items-center gap-2">
-							<span>Duration:</span>
-							<span>
-								{duration
-									? `${Math.floor(duration / 60)}:${('0' + Math.floor(duration % 60)).slice(-2)} min`
-									: '—'}
-							</span>
 						</div>
 					</div>
 				</div>

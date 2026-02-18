@@ -23,8 +23,6 @@ export const QUERY_KEYS = {
 	image: (id: number) => `image-media-view-${id}`,
 	document: (id: number) => `document-media-view-${id}`,
 }
-
-
 interface DownloadMediaOptions {
 	user: NonNullable<User>;
 	messageId: number | string;
@@ -66,6 +64,7 @@ export async function uploadFiles(
 	try {
 		for (let index = 0; index < files.length; index++) {
 			const file = files[index];
+
 			const toUpload = await client.uploadFile({
 				file: file,
 				workers: 5,
@@ -89,7 +88,7 @@ export async function uploadFiles(
 
 			const result = await client.sendFile(entity, {
 				file: toUpload,
-				forceDocument: true
+				forceDocument: !file.type.startsWith('audio')
 			});
 
 			await uploadFile({
@@ -146,6 +145,7 @@ export async function deleteItem(
 		await client.disconnect();
 	}
 }
+
 
 export async function getChannelDetails(client: TelegramClient, username: string) {
 	if (!client) throw new Error('Telegram client is not initialized');
@@ -301,9 +301,11 @@ export const getCacheKey = (
 	messageId: number | string,
 	category: MediaCategory
 ) => {
-	const fileSmCacheKey = `${channelId}-${messageId}-${'small' satisfies MediaSize}-${category}`;
-	const fileLgCacheKey = `${channelId}-${messageId}-${'large' satisfies MediaSize}-${category}`;
-	return { fileSmCacheKey, fileLgCacheKey };
+	if (category == 'image') {
+		const fileSmCacheKey = `${channelId}-${messageId}-${'small' satisfies MediaSize}-${category}`;
+		const fileLgCacheKey = `${channelId}-${messageId}-${'large' satisfies MediaSize}-${category}`;
+		return { fileSmCacheKey, fileLgCacheKey };
+	}
 };
 
 export const removeCachedFile = async (cacheKey: string) => {
@@ -321,23 +323,27 @@ export const downloadMedia = async (
 	if (!user || !client || !user.channelId || !user.accessHash)
 		throw new Error('failed to get user');
 
-	const { fileLgCacheKey, fileSmCacheKey } = getCacheKey(user.channelId, messageId, category);
-	const fileLg = await getCachedFile(fileLgCacheKey);
-	if (fileLg && size === 'large') {
-		const blob = fileLg.data;
-		const url = URL.createObjectURL(blob);
-		return { blob, url }
+	const cacheKeys = getCacheKey(user.channelId, messageId, category);
+	if (cacheKeys) {
+		const { fileLgCacheKey, fileSmCacheKey } = cacheKeys
+		const fileLg = await getCachedFile(fileLgCacheKey);
+		if (fileLg && size === 'large') {
+			const blob = fileLg.data;
+			const url = URL.createObjectURL(blob);
+			return { blob, url }
+		}
+
+		const fileSm = await getCachedFile(fileSmCacheKey);
+		if (fileSm && size === 'small') {
+			const blob = fileSm.data;
+			const url = URL.createObjectURL(blob);
+			return { blob, url }
+		}
 	}
 
-	const fileSm = await getCachedFile(fileSmCacheKey);
-	if (fileSm && size === 'small') {
-		const blob = fileSm.data;
-		const url = URL.createObjectURL(blob);
-		return { blob, url }
-	}
 	if (typeof client === 'string') return null;
 	const media = await getMessage({ client, messageId, user });
-	if (!media) return { notFound: false, blob: undefined, url: undefined };
+	if (!media) return { notFound: true, blob: undefined, url: undefined };
 
 	try {
 		if (media)
@@ -345,12 +351,11 @@ export const downloadMedia = async (
 				client,
 				media,
 				size,
-				size === 'large' ? fileLgCacheKey : fileSmCacheKey,
+				category == "image" ? (size === 'large' ? cacheKeys?.fileLgCacheKey : cacheKeys?.fileSmCacheKey) : undefined,
 			);
 	} catch (err) {
 		console.error(err);
 	}
-
 	return null;
 };
 
@@ -358,22 +363,19 @@ export const handleMediaDownload = async (
 	client: TelegramClient,
 	media: Message['media'] | MessageMediaPhoto,
 	size: MediaSize,
-	cacheKey: string,
+	cacheKey?: string,
 ): Promise<{ blob: Blob, url: string } | null> => {
 	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
-		progressCallback: (progress, total) => {
-			const percent = (Number(progress) / Number(total)) * 100;
-		},
 		thumb: size === 'small' ? 0 : undefined
 	});
-
 	const blob = new Blob([buffer as BlobPart]);
-
-	fileCacheDb.fileCache.add({
-		id: Date.now(),
-		data: blob,
-		cacheKey
-	});
+	if (cacheKey) {
+		fileCacheDb.fileCache.add({
+			id: Date.now(),
+			data: blob,
+			cacheKey: cacheKey
+		});
+	}
 
 	return { blob, url: URL.createObjectURL(blob) };
 };
