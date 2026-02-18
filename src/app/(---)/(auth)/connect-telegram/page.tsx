@@ -25,7 +25,7 @@ async function Page() {
 	}
 	return (
 		<div>
-			<ConnectTelegram user={user as NonNullable<User>} />
+			<ConnectTelegram user={{ ...user, telegramSession: stringSession ?? null }} />
 		</div>
 	);
 }

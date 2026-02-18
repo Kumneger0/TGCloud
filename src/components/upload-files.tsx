@@ -1,14 +1,13 @@
 import { Button } from '@/components/ui/button';
-import { getTgClient } from '@/lib/getTgClient';
 import { promiseToast } from '@/lib/notify';
 import { User } from '@/lib/types';
 import { formatBytes, uploadFiles } from '@/lib/utils';
+import { useGlobalStore } from '@/store/global-store';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Dispatch, SetStateAction, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Dropzone from 'react-dropzone';
 import { CloudUploadIcon, FileIcon, TrashIcon, UploadIcon, XIcon } from './Icons/icons';
-import { useGlobalStore } from '@/store/global-store';
 
 interface DropedFile {
 	file: File;
@@ -28,7 +27,7 @@ export const UploadFiles = ({
 	const folderId = searchParams?.get('folderId') ?? null;
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const setUploadProgress = useGlobalStore((state) => state.setUploadProgress);
-	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
+	const client = useGlobalStore(s => s.client)
 
 	const handleDrop = (acceptedFiles: File[]) => {
 		const files = acceptedFiles.map((file) => ({
@@ -41,19 +40,7 @@ export const UploadFiles = ({
 	const handleSubmit = async (formData: FormData) => {
 		if (botRateLimit.isRateLimited) return null;
 
-		const getTgClientArgs: Parameters<typeof getTgClient>[0] =
-			user.authType === 'user' && user.telegramSession
-				? {
-						authType: 'user',
-						stringSession: user.telegramSession ?? ''
-					}
-				: {
-						authType: 'bot',
-						botToken: user.botTokens?.[0]?.token,
-						setBotRateLimit
-					};
-
-		const client = await getTgClient(getTgClientArgs);
+		if (!client) return null;
 
 		await promiseToast({
 			cb: () => {
