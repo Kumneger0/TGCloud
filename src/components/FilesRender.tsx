@@ -25,7 +25,7 @@ import {
 	removeCachedFile
 } from '@/lib/utils';
 import fluidPlayer from 'fluid-player';
-import { Minimize2, Pause, Play, TrashIcon } from 'lucide-react';
+import { Loader2, Minimize2, Pause, Play, TrashIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
@@ -67,17 +67,17 @@ function Files({
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
-	const setUser = useGlobalStore(s => s.setUser)
-	const setClient = useGlobalStore(s => s.setClient)
-	const [error, setError] = useState<string | null>(null)
-	const [isPending, setIsPending] = useState(true)
-	const client = useGlobalStore(s => s.client)
-	const { closeModal, openModal } = useGlobalModal()
+	const setUser = useGlobalStore((s) => s.setUser);
+	const setClient = useGlobalStore((s) => s.setClient);
+	const [error, setError] = useState<string | null>(null);
+	const [isPending, setIsPending] = useState(true);
+	const client = useGlobalStore((s) => s.client);
+	const { closeModal, openModal } = useGlobalModal();
 
 	useEffect(() => {
-		setUser(user)
+		setUser(user);
 		const getClient = async () => {
-			setIsPending(true)
+			setIsPending(true);
 			const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
 				user.authType === 'user' && user.telegramSession
 					? {
@@ -94,55 +94,89 @@ function Files({
 				const telegramClient = await getTgClient(getTgClientArgs);
 
 				if (telegramClient) {
-					if (!telegramClient?.connected) await telegramClient.connect()
-					const whoAmI = await telegramClient.getMe()
-					console.log(whoAmI)
+					if (!telegramClient?.connected) await telegramClient.connect();
+					const whoAmI = await telegramClient.getMe();
+					console.log(whoAmI);
 
-					const canAccess = await withTelegramConnection(telegramClient, (client) =>
+					const canWeAccess = await withTelegramConnection(telegramClient, (client) =>
 						canWeAccessTheChannel(client, user)
-					)
+					);
 
-					if (!canAccess) {
+					if (!canWeAccess) {
 						openModal({
 							forceDialog: true,
 							content: (
 								<div className="flex flex-col items-center gap-4 py-4 text-center">
 									<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-										<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+										<svg
+											xmlns="http://www.w3.org/2000/svg"
+											width="28"
+											height="28"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+											strokeLinecap="round"
+											strokeLinejoin="round"
+											className="text-destructive"
+										>
+											<circle cx="12" cy="12" r="10" />
+											<line x1="12" y1="8" x2="12" y2="12" />
+											<line x1="12" y1="16" x2="12.01" y2="16" />
+										</svg>
 									</div>
 									<div className="space-y-1">
 										<h3 className="text-lg font-semibold">Channel Access Denied</h3>
 										<p className="text-sm text-muted-foreground max-w-xs">
-											We couldn&apos;t access your Telegram channel. Make sure the bot or account is still an admin of the channel.
+											We couldn&apos;t access your Telegram channel. Make sure the bot or account is
+											still an admin of the channel.
 										</p>
 									</div>
 									<Button
 										variant="outline"
 										className="mt-2"
-										onClick={() => { closeModal(); router.push('/'); }}
+										onClick={() => {
+											closeModal();
+											router.push('/');
+										}}
 									>
 										Go to Home
 									</Button>
 								</div>
 							)
-						})
-						return
+						});
+						return;
 					}
-					setClient(telegramClient)
+					setClient(telegramClient);
 				}
 
 				if (!telegramClient) {
-					setError("Failed to connnect to telegram")
+					setError('Failed to connnect to telegram');
 				}
 			} catch (err) {
-				const message = err instanceof Error ? err.message : "Failed to connnect to telegram"
+				const message = err instanceof Error ? err.message : 'Failed to connnect to telegram';
 				if (message.includes('AUTH_KEY_DUPLICATED')) {
 					openModal({
 						forceDialog: true,
 						content: (
 							<div className="flex flex-col items-center gap-4 py-4 text-center">
 								<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-									<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="28"
+										height="28"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="2"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										className="text-destructive"
+									>
+										<circle cx="12" cy="12" r="10" />
+										<line x1="12" y1="8" x2="12" y2="12" />
+										<line x1="12" y1="16" x2="12.01" y2="16" />
+									</svg>
 								</div>
 								<div className="space-y-1">
 									<h3 className="text-lg font-semibold">Telegram Session Duplicated</h3>
@@ -154,7 +188,7 @@ function Files({
 									className="mt-2 w-full"
 									disabled={isUserLoading}
 									onClick={() => {
-										setIsUserLoading(true)
+										setIsUserLoading(true);
 										connectTelegramUser();
 									}}
 								>
@@ -162,17 +196,16 @@ function Files({
 								</Button>
 							</div>
 						)
-					})
-					return
+					});
+					return;
 				}
-				setError(message)
+				setError(message);
 			} finally {
-				setIsPending(false)
+				setIsPending(false);
 			}
-		}
+		};
 
-		getClient()
-
+		getClient();
 	}, [user.telegramSession, user.authType]);
 
 	const [isUserLoading, setIsUserLoading] = useState(false);
@@ -189,7 +222,6 @@ function Files({
 		return [...files].sort((a, b) => a.mimeType.localeCompare(b.mimeType));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [sortedFileKey, sortBy]);
-
 
 	const handleCheckboxChange = useCallback(
 		(file: (typeof sortedFiles)[number], checked: boolean) => {
@@ -210,7 +242,6 @@ function Files({
 			authType: 'user'
 		});
 	}, []);
-
 
 	async function connectTelegramUser() {
 		try {
@@ -242,7 +273,7 @@ function Files({
 					session: newSession,
 					accessHash: user.accessHash,
 					channelId: user.channelId,
-					channelTitle: user.channelTitle ?? user.name + "Drive",
+					channelTitle: user.channelTitle ?? user.name + 'Drive',
 					authType: 'user'
 				});
 				posthog.capture('userTelegramAccountConnect', { userId: user.id });
@@ -259,7 +290,6 @@ function Files({
 		}
 	}
 
-
 	if (isSwitchingFolder || isPending) {
 		return (
 			<div className="flex items-center justify-center h-full">
@@ -273,9 +303,7 @@ function Files({
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
 					<h2 className="text-xl font-semibold">Error Connecting to Telegram</h2>
-					<p className="text-muted-foreground">
-						{error}
-					</p>
+					<p className="text-muted-foreground">{error}</p>
 				</div>
 			</div>
 		);
@@ -297,39 +325,85 @@ function Files({
 					<div className="p-4 bg-muted/50 rounded-lg border border-border text-left space-y-4 mt-6">
 						<div className="flex items-start gap-3">
 							<div className="p-2 bg-primary/10 rounded-full text-primary shrink-0">
-								<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" /></svg>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								>
+									<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+									<circle cx="8.5" cy="7" r="4" />
+									<polyline points="17 11 19 13 23 9" />
+								</svg>
 							</div>
 							<div className="space-y-1">
 								<h3 className="font-medium">Want to bypass this limit?</h3>
 								<p className="text-sm text-muted-foreground">
-									Connect your <strong>User Account</strong> instead of using a bot. User accounts have much higher limits!
+									Connect your <strong>User Account</strong> instead of using a bot. User accounts
+									have much higher limits!
 								</p>
 							</div>
 						</div>
 
 						<div className="space-y-3 pt-2">
 							<div className="text-sm text-amber-600 dark:text-amber-400 p-3 bg-amber-50 dark:bg-amber-950/30 rounded border border-amber-200 dark:border-amber-900/50 flex gap-2">
-								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><path d="M12 9v4" /><path d="M12 17h.01" /><path d="M3.32 6.64l6.09 10.59a2 2 0 0 0 3.18 0l6.09-10.59-1.32-2.31H4.64l-1.32 2.31Z" /></svg>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									className="shrink-0 mt-0.5"
+								>
+									<path d="M12 9v4" />
+									<path d="M12 17h.01" />
+									<path d="M3.32 6.64l6.09 10.59a2 2 0 0 0 3.18 0l6.09-10.59-1.32-2.31H4.64l-1.32 2.31Z" />
+								</svg>
 								<div>
 									<p className="font-semibold">Safety First!</p>
-									<p className="opacity-90">Please use a <strong>separate Telegram account</strong> for this purpose.</p>
+									<p className="opacity-90">
+										Please use a <strong>separate Telegram account</strong> for this purpose.
+									</p>
 								</div>
 							</div>
 
 							<div className="text-sm text-blue-600 dark:text-blue-400 p-3 bg-blue-50 dark:bg-blue-950/30 rounded border border-blue-200 dark:border-blue-900/50 flex gap-2">
-								<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="18"
+									height="18"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									className="shrink-0 mt-0.5"
+								>
+									<circle cx="12" cy="12" r="10" />
+									<path d="M12 16v-4" />
+									<path d="M12 8h.01" />
+								</svg>
 								<div>
 									<p className="font-semibold">Requirement</p>
-									<p className="opacity-90">The account you connect must be an <strong>admin</strong> of your current channel.</p>
+									<p className="opacity-90">
+										The account you connect must be an <strong>admin</strong> of your current
+										channel.
+									</p>
 								</div>
 							</div>
 						</div>
 
-						<Button
-							onClick={connectTelegramUser}
-							disabled={isUserLoading}
-							className="w-full"
-						>
+						<Button onClick={connectTelegramUser} disabled={isUserLoading} className="w-full">
 							{isUserLoading ? 'Connecting...' : 'Switch to User Account'}
 						</Button>
 					</div>
@@ -337,7 +411,6 @@ function Files({
 			</div>
 		);
 	}
-
 
 	if (!sortedFiles?.length)
 		return (
@@ -360,10 +433,12 @@ function Files({
 	async function batchDelete() {
 		if (!Array.isArray(selectedFiles)) return;
 		try {
-			const fileTelegramIds = selectedFiles.map((file) => file.fileTelegramId).filter((id) => id !== null)
-			if (!client) throw Error("there was an error while deleting the files")
-			const result = await deleteItem(user, fileTelegramIds, client)
-			if (!result) throw Error("there was an error while deleting the files")
+			const fileTelegramIds = selectedFiles
+				.map((file) => file.fileTelegramId)
+				.filter((id) => id !== null);
+			if (!client) throw Error('there was an error while deleting the files');
+			const result = await deleteItem(user, fileTelegramIds, client);
+			if (!result) throw Error('there was an error while deleting the files');
 			await Promise.all(
 				selectedFiles.map(async (file) => {
 					const cacheKeys = getCacheKey(
@@ -385,7 +460,7 @@ function Files({
 			);
 			toast.success('you have successfully deleted the files');
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Failed to Delete the files'
+			const message = err instanceof Error ? err.message : 'Failed to Delete the files';
 			toast.error(message);
 			console.error(err);
 		} finally {
@@ -407,10 +482,7 @@ function Files({
 			<div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
 				{sortedFiles?.map((file) => (
 					<div className="relative w-full" key={file.id}>
-						<EachFile
-							file={file as FileItem}
-							user={user}
-						/>
+						<EachFile file={file as FileItem} user={user} />
 						<div className="absolute top-2 left-2 z-40">
 							<Input
 								onChange={(e) => handleCheckboxChange(file, e.target.checked)}
@@ -464,64 +536,58 @@ function DeleteAllFiles({
 		});
 	};
 
-	return (
-		<div onClick={handleClick}>
-			{children}
-		</div>
-	);
+	return <div onClick={handleClick}>{children}</div>;
 }
 
 export default Files;
 
-const EachFile = React.memo(function EachFile({
-	file,
-	user,
-}: {
-	file: FileItem;
-		user: User;
-}) {
-	const client = useGlobalStore(s => s.client)!
-	const [largeURL, setLargeURL] = useState<string | null>(null)
+const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
+	const client = useGlobalStore((s) => s.client)!;
+	const [largeURL, setLargeURL] = useState<string | null>(null);
 	const { data, isPending, error } = useQuery({
-		queryKey: ["file", file.id],
+		queryKey: ['file', file.id],
 		queryFn: async () => {
-			if (file.category !== "video") {
+			if (file.category !== 'video') {
 				return await withTelegramConnection(client, async (client) => {
 					const result = await downloadMedia(
 						{
 							user,
 							messageId: file?.fileTelegramId,
-							size: "small",
-							category: file.category as MediaCategory,
+							size: 'small',
+							category: file.category as MediaCategory
 						},
 						client
 					);
-					return { ...result, notFound: result?.notFound ?? false }
+					return { ...result, notFound: result?.notFound ?? false };
 				});
 			}
 		}
-	})
+	});
 
-	const { data: videoData, isPending: videoIsPending, error: videoError } = useQuery({
-		queryKey: ["video", file.id],
-		queryFn: async (): Promise<{ thumbnail?: string, notFound: boolean } | null> => {
-			if (file.category == "video") {
+	const {
+		data: videoData,
+		isPending: videoIsPending,
+		error: videoError
+	} = useQuery({
+		queryKey: ['video', file.id],
+		queryFn: async (): Promise<{ thumbnail?: string; notFound: boolean } | null> => {
+			if (file.category == 'video') {
 				const media = (await getMessage({
 					client,
 					messageId: file.fileTelegramId,
 					user: user as NonNullable<User>
-				})) as Message['media'] | null | undefined
+				})) as Message['media'] | null | undefined;
 
 				if (!media) {
-					return { notFound: true }
+					return { notFound: true };
 				}
 
 				const thumbnail = await generateVideoThumbnail(client, media);
 				return { thumbnail, notFound: false };
 			}
-			return null
+			return null;
 		}
-	})
+	});
 
 	useEffect(() => {
 		const idleId = requestIdleCallback(async () => {
@@ -530,24 +596,21 @@ const EachFile = React.memo(function EachFile({
 					{
 						user,
 						messageId: file?.fileTelegramId,
-						size: "large",
-						category: file.category as MediaCategory,
+						size: 'large',
+						category: file.category as MediaCategory
 					},
 					client
 				);
-				return { ...result, notFound: result?.notFound ?? false }
+				return { ...result, notFound: result?.notFound ?? false };
 			});
-			setLargeURL(largeURL?.url ?? null)
-		})
-		return () => cancelIdleCallback(idleId)
-	}, [])
+			setLargeURL(largeURL?.url ?? null);
+		});
+		return () => cancelIdleCallback(idleId);
+	}, []);
 
-
-
-
-	const url = largeURL ?? data?.url
-	const notFound = data?.notFound || videoData?.notFound
-	const router = useRouter()
+	const url = largeURL ?? data?.url;
+	const notFound = data?.notFound || videoData?.notFound;
+	const router = useRouter();
 
 	const fileContextMenuActions = [
 		{
@@ -580,10 +643,7 @@ const EachFile = React.memo(function EachFile({
 
 				const promies = () =>
 					withTelegramConnection(client, async (client) => {
-						await Promise.all([
-							deleteFile(file.id),
-							deleteItem(user, file.fileTelegramId, client)
-						]);
+						await Promise.all([deleteFile(file.id), deleteItem(user, file.fileTelegramId, client)]);
 					});
 
 				promiseToast({
@@ -608,9 +668,7 @@ const EachFile = React.memo(function EachFile({
 			>
 				{notFound && (
 					<div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm p-4 text-center space-y-3">
-						<p className="text-sm font-medium text-destructive">
-							File not found in Telegram
-						</p>
+						<p className="text-sm font-medium text-destructive">File not found in Telegram</p>
 						<a
 							href={`https://t.me/c/${(user.channelId ?? '').replace('-100', '')}/${file.fileTelegramId}`}
 							target="_blank"
@@ -659,7 +717,7 @@ const EachFile = React.memo(function EachFile({
 							}
 						>
 							<div className="w-full h-full min-w-full flex-1 relative">
-								<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ""} />
+								<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ''} />
 								<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
 									<Play className="text-black bg-white p-2 rounded-full h-14 w-14" />
 								</div>
@@ -679,7 +737,7 @@ const EachFile = React.memo(function EachFile({
 								/>
 							}
 						>
-							<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ""} />
+							<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ''} />
 						</FileModalView>
 					) : null}
 				</div>
@@ -719,108 +777,110 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 	);
 }
 
-const VideoMediaView = React.memo(({
-	fileData,
-	client,
-	user,
-	queryKey
-}: {
-	fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
-	client: TelegramClient;
+const VideoMediaView = React.memo(
+	({
+		fileData,
+		client,
+		user,
+		queryKey
+	}: {
+		fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
+		client: TelegramClient;
 		queryKey: string;
-	user: User;
-}) => {
-	let self = useRef<HTMLVideoElement>(null);
-	const playerRef = useRef<FluidPlayerInstance>(undefined);
+		user: User;
+	}) => {
+		let self = useRef<HTMLVideoElement>(null);
+		const playerRef = useRef<FluidPlayerInstance>(undefined);
 
-	const { data: url } = useQuery({
-		queryKey: [queryKey],
-		queryFn: async () => {
-			const message = await withTelegramConnection(client, async (client) => {
-				const message = await getMessage({
-					client,
-					messageId: fileData.fileTelegramId,
-					user: user as NonNullable<User>
+		const { data: url } = useQuery({
+			queryKey: [queryKey],
+			queryFn: async () => {
+				const message = await withTelegramConnection(client, async (client) => {
+					const message = await getMessage({
+						client,
+						messageId: fileData.fileTelegramId,
+						user: user as NonNullable<User>
+					});
+
+					if (!message) {
+						throw new Error('Failed to get message');
+					}
+					return message;
 				});
 
-				if (!message) {
-					throw new Error('Failed to get message');
-				}
-				return message;
-			});
+				const mediaSource = new MediaSource();
+				const url = URL.createObjectURL(mediaSource);
 
-			const mediaSource = new MediaSource();
-			const url = URL.createObjectURL(mediaSource);
+				withTelegramConnection(client, async (client) => {
+					await streamMedia({
+						client,
+						media: message as Message['media'],
+						mimeType: fileData.mimeType,
+						mediaSource
+					});
+				});
+				return url;
+			}
+		});
 
-			withTelegramConnection(client, async (client) => {
-				await streamMedia({
-					client,
-					media: message as Message['media'],
-					mimeType: fileData.mimeType,
-					mediaSource
-				})
-			});
-			return url;
-		}
-	})
-
-	useEffect(() => {
-		if (!playerRef.current) {
-			playerRef.current = fluidPlayer(self.current!, {
-				layoutControls: {
-					allowDownload: false,
-					autoPlay: true,
-					logo: {
-						imageUrl: '/TGCloud_PWA_icon_96x96.png',
-						position: 'top left',
-						imageMargin: '10px',
-					},
-					miniPlayer: {
-						autoToggle: true,
-						enabled: true,
-						position: 'bottom right',
-						height: 200,
-						width: 300,
-						placeholderText: fileData.fileName
+		useEffect(() => {
+			if (!playerRef.current) {
+				playerRef.current = fluidPlayer(self.current!, {
+					layoutControls: {
+						allowDownload: false,
+						autoPlay: true,
+						logo: {
+							imageUrl: '/TGCloud_PWA_icon_96x96.png',
+							position: 'top left',
+							imageMargin: '10px'
+						},
+						miniPlayer: {
+							autoToggle: true,
+							enabled: true,
+							position: 'bottom right',
+							height: 200,
+							width: 300,
+							placeholderText: fileData.fileName
+						}
 					}
-				}
-			});
-		}
-	}, [fileData.id]);
+				});
+			}
+		}, [fileData.id]);
 
-	return (
-		<div className="flex flex-col h-full">
-			<div className="flex-1 overflow-y-auto">
-				<div className="relative aspect-video">
-					<video
-						ref={self}
-						controls
-						autoPlay
-						className="w-full h-full object-contain"
-						src={url}
-					></video>
-				</div>
-				<div className="p-6 bg-background">
-					<h3 className="text-2xl font-semibold">{fileData.fileName}</h3>
-					<div className="flex items-center gap-2 text-muted-foreground">
-						<VideoIcon className="w-5 h-5" />
-						<span>{formatBytes(Number(fileData.size))}</span>
+		return (
+			<div className="flex flex-col h-full">
+				<div className="flex-1 overflow-y-auto">
+					<div className="relative aspect-video">
+						<video
+							ref={self}
+							controls
+							autoPlay
+							className="w-full h-full object-contain"
+							src={url}
+						></video>
 					</div>
-					<div className="grid gap-2 mt-4">
-						<div className="flex items-center justify-between">
-							<span className="text-muted-foreground">File Name:</span>
-							<span>{fileData.fileName}</span>
-						</div>
-						<div className="flex items-center justify-between">
-							<span className="text-muted-foreground">File Size:</span>
+					<div className="p-6 bg-background">
+						<h3 className="text-2xl font-semibold">{fileData.fileName}</h3>
+						<div className="flex items-center gap-2 text-muted-foreground">
+							<VideoIcon className="w-5 h-5" />
 							<span>{formatBytes(Number(fileData.size))}</span>
+						</div>
+						<div className="grid gap-2 mt-4">
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground">File Name:</span>
+								<span>{fileData.fileName}</span>
+							</div>
+							<div className="flex items-center justify-between">
+								<span className="text-muted-foreground">File Size:</span>
+								<span>{formatBytes(Number(fileData.size))}</span>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
-		</div>
-	);
-})
+		);
+	}
+);
 
 VideoMediaView.displayName = 'VideoMediaView';
 
@@ -869,7 +929,7 @@ function ImagePreviewModal({
 	);
 }
 function AudioMediaView({
-	fileData,
+	fileData
 }: {
 	fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
 		client: TelegramClient;
@@ -881,13 +941,19 @@ function AudioMediaView({
 	const audioRef = useGlobalStore((s) => s.audioRef);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
-	const duration = audioPlayer?.duration
+	const duration = audioPlayer?.duration;
 	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
+	const isLoading = audioPlayer?.isLoading
 
 	useEffect(() => {
 		if (!isCurrentFile) {
 			setAudioPlayer({
-				fileData: { ...fileData, folderId: '0', date: fileData.date ?? new Date().toISOString() } as FileItem,
+				fileData: {
+					...fileData,
+					folderId: '0',
+					date: fileData.date ?? new Date().toISOString()
+				} as FileItem,
+				isLoading: false,
 				blobURL: '',
 				isMinimized: false,
 				duration: 0,
@@ -905,7 +971,10 @@ function AudioMediaView({
 		const onPlay = () => setIsPlaying(true);
 		const onPause = () => setIsPlaying(false);
 		const onTimeUpdate = () => setCurrentTime(el.currentTime);
-		const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+		const onEnded = () => {
+			setIsPlaying(false);
+			setCurrentTime(0);
+		};
 
 		el.addEventListener('play', onPlay);
 		el.addEventListener('pause', onPause);
@@ -998,8 +1067,15 @@ function AudioMediaView({
 							variant="outline"
 							size="icon"
 							className="h-12 w-12 rounded-full"
+							disabled={isLoading}
 						>
-							{isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6" />}
+							{isLoading ? (
+								<Loader2 className="h-6 w-6 animate-spin" />
+							) : isPlaying ? (
+								<Pause className="h-6 w-6" />
+							) : (
+								<Play className="h-6 w-6" />
+							)}
 						</Button>
 					</div>
 

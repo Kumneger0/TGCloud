@@ -18,6 +18,7 @@ export interface AudioPlayerState {
 	isMinimized: boolean;
 	duration: number;
 	blobURL: string;
+	isLoading: boolean;
 }
 
 type GlobalStoreType = {
