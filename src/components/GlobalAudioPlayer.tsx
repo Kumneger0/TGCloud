@@ -40,7 +40,7 @@ export default function GlobalAudioPlayer() {
             try {
                 if (!client) return;
                 if (!client.connected) await client.connect();
-
+                updateAudioPlayer({ isLoading: true })
                 const message = await withTelegramConnection(client, async (c) => {
                     const msg = await getMessage({
                         client: c,
@@ -63,6 +63,12 @@ export default function GlobalAudioPlayer() {
                 if (audioRef.current) {
                     audioRef.current.src = url;
                     audioRef.current.load();
+                    audioRef.current.onwaiting = () => {
+                        updateAudioPlayer({ isLoading: true })
+                    }
+                    audioRef.current.onplaying = () => {
+                        updateAudioPlayer({ isLoading: false })
+                    }
                 }
 
                 updateAudioPlayer({ blobURL: url, duration: duration ?? 0 });
