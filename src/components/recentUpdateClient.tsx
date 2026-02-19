@@ -1,21 +1,20 @@
 'use client';
 
+import { UPDATE_BANNER_DURATION_DAYS } from '@/lib/latestUpdate';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export default function UpdateBanner({
-	isRecentUpdate,
-	updateDate
+	recentUpdateDate
 }: {
-	isRecentUpdate: boolean;
-	updateDate: string;
+		recentUpdateDate: string;
 }) {
 	const [show, setShow] = useState(() => {
-		if (typeof window === 'undefined') return false;
-		if (isRecentUpdate && !localStorage.getItem('updateBannerDismissed')) {
-			return true;
-		}
-		return false;
+		if (typeof window === 'undefined' || localStorage.getItem('updateBannerDismissed')) return false;
+		const now = new Date();
+		const diffDays = now.getTime() - new Date(recentUpdateDate).getTime();
+		const diffDaysNumber = diffDays / (1000 * 60 * 60 * 24);
+		return diffDaysNumber < UPDATE_BANNER_DURATION_DAYS;
 	});
 
 	if (!show) return null;
@@ -27,7 +26,7 @@ export default function UpdateBanner({
 					<span className="text-xl">🎉</span>
 					<span>New update available!</span>
 					<Link
-						href={`/changelog/${updateDate}`}
+						href={`/changelog/${recentUpdateDate}`}
 						onClick={() => {
 							setShow(false);
 							localStorage.setItem('updateBannerDismissed', 'true');
