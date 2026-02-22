@@ -1,5 +1,4 @@
 'use client';
-import { withTelegramConnection } from '@/lib/telegramMutex';
 import Message from '@/lib/types';
 import { getMessage } from '@/lib/utils';
 import { streamMedia } from '@/lib/video-stream';
@@ -9,7 +8,6 @@ import { useEffect, useRef } from 'react';
 
 export default function GlobalAudioPlayer() {
     const audioRef = useRef<HTMLAudioElement>(null);
-    const currentFileIdRef = useRef<string | null>(null);
     const blobURLRef = useRef<string | null>(null);
 
     const setAudioRef = useGlobalStore((s) => s.setAudioRef);
@@ -24,32 +22,45 @@ export default function GlobalAudioPlayer() {
 
     useEffect(() => {
         const fileId = audioPlayer?.fileTelegramId;
+        const currentFileId = audioRef.current?.id;
 
-        if (!fileId || fileId === currentFileIdRef.current) return;
+        if (!fileId || (currentFileId && fileId === currentFileId)) {
+            return
+        }
         if (!user) return;
-
-        currentFileIdRef.current = fileId;
 
         if (blobURLRef.current) {
             URL.revokeObjectURL(blobURLRef.current);
             blobURLRef.current = null;
         }
 
-        const startStream = async () => {
-            try {
-                if (!client) return;
-                if (!client.connected) await client.connect();
-                updateAudioPlayer({ isLoading: true })
-                const message = await withTelegramConnection(client, async (c) => {
-                    const msg = await getMessage({
-                        client: c,
-                        messageId: fileId,
-                        user: user,
-                    });
-                    if (!msg) throw new Error('Message not found');
-                    return msg;
-                });
+        if (audioRef.current) {
+            console.log('setting the id', fileId)
+            audioRef.current.id = fileId;
+        }
 
+        console.log("starting the stream", client)
+
+        const startStream = async () => {
+            console.log('inside the start stream', audioPlayer.fileData.fileName)
+            try {
+                if (!client) {
+                    console.log('no client')
+                    return;
+                };
+                if (!client.connected) {
+                    console.log('not connected')
+                    await client.connect();
+                }
+                updateAudioPlayer({ isLoading: true })
+                console.log('inside the with telegram connection')
+                const message = await getMessage({
+                    client: client,
+                    messageId: fileId,
+                    user: user,
+                });
+                if (!message) throw new Error('Message not found');
+                console.log('message', message)
 
                 const duration = (message as any)?.document?.attributes?.find(
                     (a: any) => a.className === 'DocumentAttributeAudio'
@@ -71,14 +82,11 @@ export default function GlobalAudioPlayer() {
                 }
 
                 updateAudioPlayer({ blobURL: url, duration: duration ?? 0 });
-
-                withTelegramConnection(client, async (c) => {
-                    await streamMedia({
-                        client: c,
-                        media: message as Message['media'],
-                        mimeType: audioPlayer!.fileData.mimeType,
-                        mediaSource,
-                    });
+                void streamMedia({
+                    client: client,
+                    media: message as Message['media'],
+                    mimeType: audioPlayer!.fileData.mimeType,
+                    mediaSource,
                 });
             } catch (err) {
                 console.error('[GlobalAudioPlayer] stream error:', err);

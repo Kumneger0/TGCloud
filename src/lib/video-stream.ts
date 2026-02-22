@@ -1,9 +1,8 @@
 
-import { Api, TelegramClient } from 'telegram';
-import { Dispatch, SetStateAction } from 'react';
 import Message from '@/lib/types';
-import * as MP4Box from 'mp4box';
 import bigInt from 'big-integer';
+import * as MP4Box from 'mp4box';
+import { Api, TelegramClient } from 'telegram';
 
 export function getVideoCodec(mimeType: string) {
 	let mimeCodec: string;
@@ -35,17 +34,17 @@ type StreamMediaArgs = {
 }
 
 export const streamMedia = async (
-	{ client, media, mimeType, mediaSource }: StreamMediaArgs
+	{ client, media, mimeType, mediaSource }: StreamMediaArgs,
 ) => {
 	if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
-		return streamDirectAudio(client, media, mimeType, mediaSource);
+		return streamDirectAudio(client, media, mimeType, mediaSource,);
 	}
 
 	if (mimeType === 'video/webm') {
 		return streamWebM(client, media, mediaSource, mimeType);
 	}
 
-	return streamMP4(client, media, mediaSource, mimeType.startsWith('audio/') ? "audio" : "video");
+	return streamMP4(client, media, mediaSource, "video");
 };
 
 const streamWebM = async (
@@ -200,7 +199,7 @@ const streamMP4 = async (
 	client: TelegramClient,
 	media: Message['media'],
 	mediaSource: MediaSource,
-	type: "audio" | "video"
+	type: "video"
 ) => {
 	return new Promise<void>((resolve, reject) => {
 		const mp4boxfile = MP4Box.createFile();

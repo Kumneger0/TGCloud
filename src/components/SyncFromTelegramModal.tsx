@@ -2,17 +2,17 @@
 import { getNewTelegramIds, importSyncedFiles } from '@/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { messageCacheDb } from '@/lib/dexie';
+import { getTgClient } from '@/lib/getTgClient';
 import { withTelegramConnection } from '@/lib/telegramMutex';
-import { formatBytes, getFilePlaceholder, getMessage, downloadMedia, MediaCategory, getMediaCategory, cn } from '@/lib/utils';
+import { FileItem } from '@/lib/types';
+import { cn, downloadMedia, formatBytes, generateVideoThumbnail, getFilePlaceholder, getMediaCategory, getMessage, MediaCategory } from '@/lib/utils';
 import { useGlobalStore } from '@/store/global-store';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { generateVideoThumbnail } from '@/lib/utils';
 import { Api } from 'telegram';
-import { FileItem } from '@/lib/types';
-import { messageCacheDb } from '@/lib/dexie';
 
 export type SyncCandidate = {
 	fileTelegramId: string;
@@ -41,6 +41,7 @@ export function SyncFromTelegramModal({
 }: Props) {
 	const client = useGlobalStore((s) => s.client);
 	const user = useGlobalStore((s) => s.user);
+	const setBotRateLimit = useGlobalStore((s) => s.setBotRateLimit);
 
 	const [state, setState] = useState({
 		candidates: [] as SyncCandidate[],
@@ -51,9 +52,27 @@ export function SyncFromTelegramModal({
 	});
 
 	const fetchMore = async (isInitial = false) => {
-		if (!client) throw new Error('Telegram client is not connected');
-		if (!user?.channelId) throw new Error('Missing channel id');
+		if (!user) throw new Error('Missing user');
+		let tgClient = client;
+		if (!tgClient) {
+			const getTgClientArgs: Parameters<typeof getTgClient>[0] = user.authType === 'user' ? {
+				authType: 'user',
+				stringSession: user.telegramSession ?? "",
 
+			} : {
+				authType: 'bot',
+				setBotRateLimit
+			}
+			tgClient = await getTgClient(getTgClientArgs) ?? null;
+		}
+
+
+		if (!tgClient) {
+			toast.error('Failed to get Telegram client');
+			return;
+		}
+
+		if (!user?.channelId) throw new Error('Missing channel id');
 		if (state.scanCount >= TELEGRAM_SCAN_LIMIT) {
 			toast.error(`Already scanned ${TELEGRAM_SCAN_LIMIT} files`);
 			return;
@@ -65,7 +84,7 @@ export function SyncFromTelegramModal({
 			const channelId = user.channelId.startsWith('-100')
 				? user.channelId
 				: `-100${user.channelId}`;
-			const entity = await withTelegramConnection(client, (c) => c.getInputEntity(channelId));
+			const entity = await withTelegramConnection(tgClient, (c) => c.getInputEntity(channelId));
 
 			let currentOffsetId = isInitial ? undefined : state.candidates.at(-1)?.fileTelegramId;
 			let newlyFound: SyncCandidate[] = [];
@@ -80,7 +99,7 @@ export function SyncFromTelegramModal({
 
 				const cachedMessages = await messageCacheDb.messageCache.get({ cacheKey });
 
-				const messages = await withTelegramConnection(client, (c) =>
+				const messages = await withTelegramConnection(tgClient, (c) =>
 					c.getMessages(entity, {
 						limit: TELEGRAM_BATCH_SIZE,
 						offsetId: currentOffsetId ? Number(currentOffsetId) : undefined
