@@ -17,6 +17,15 @@ import { ChannelDetails, User } from './types';
 export type MediaSize = 'large' | 'small';
 export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
 
+export function getMediaCategory(mimeType: string): MediaCategory {
+	if (mimeType.startsWith('image/')) return 'image';
+	if (mimeType.startsWith('video/')) return 'video';
+	if (mimeType.startsWith('audio/')) return 'audio';
+	return 'document';
+}
+
+export const telegramErrorMessagesThatNeedReLogin = ["SESSION_REVOKED", "AUTH_KEY_DUPLICATED", "AUTH_KEY_UNREGISTERED", "AUTH_KEY_INVALID", "USER_DEACTIVATED", "SESSION_EXPIRED"]
+
 export const QUERY_KEYS = {
 	audio: (id: number) => `audio-media-view-${id}`,
 	video: (id: number) => `video-media-view-${id}`,
@@ -69,17 +78,14 @@ export async function uploadFiles(
 				file: file,
 				workers: 5,
 				onProgress: (progress) => {
-					onProgress &&
-						onProgress({
-							itemName: file.name,
-							itemIndex: index,
-							progress: progress,
-							total: files.length
-						});
+					onProgress?.({
+						itemName: file.name,
+						itemIndex: index,
+						progress: progress,
+						total: files.length
+					});
 				}
 			});
-
-			const me = await client.getMe();
 
 			const channelId = user?.channelId!.startsWith('-100')
 				? user?.channelId!
@@ -211,12 +217,13 @@ const filePlaceholderObj = {
 	video: '/video-placeholder.png'
 };
 
-export const getFilePlaceholder = (file: FileItem) => {
-	if (file.category.startsWith('image')) return filePlaceholderObj.image;
-	if (file.category == 'application/pdf') return filePlaceholderObj.pdf;
-	if (file.category.startsWith('application')) return filePlaceholderObj.document;
-	if (file.category.startsWith('audio')) return filePlaceholderObj.audio;
-	if (file.category.startsWith('video')) return filePlaceholderObj.video;
+export const getFilePlaceholder = (file: Pick<FileItem, "category" | "mimeType">) => {
+	if (file.mimeType.startsWith('image')) return filePlaceholderObj.image;
+	if (file.mimeType === 'application/pdf') return filePlaceholderObj.pdf;
+	if (file.mimeType.startsWith('application')) return filePlaceholderObj.document;
+	if (file.mimeType.startsWith('audio') || file.category === 'audio') return filePlaceholderObj.audio;
+	if (file.mimeType.startsWith('video') || file.category === 'video') return filePlaceholderObj.video;
+	return filePlaceholderObj.document;
 };
 
 export function isDarkMode() {

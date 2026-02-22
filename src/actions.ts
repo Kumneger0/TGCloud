@@ -1,6 +1,6 @@
 'use server';
 import { auth } from '@/lib/auth';
-import { and, asc, count, desc, eq, ilike, isNull } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -14,6 +14,7 @@ import {
 	usersTable
 } from './db/schema';
 import { USER_TELEGRAM_SESSION_COOKIE_NAME } from './lib/consts';
+import { FileItem } from './lib/types';
 
 export type FolderHierarchy = {
 	id: string;
@@ -74,6 +75,103 @@ export async function updateTokenRateLimit(tokenId: string, millisec: number) {
 		return updateResult;
 	} catch (error) {
 		console.error('Error updating token rate limit:', error);
+	}
+}
+
+export async function importSyncedFiles(files: Omit<FileItem, 'id' | 'userId' | 'category'>[]) {
+	try {
+		const user = await getUser();
+		if (!user || !user.id) {
+			throw new Error('User not authenticated or user ID is missing');
+		}
+
+		if (!Array.isArray(files) || files.length === 0) {
+			return [];
+		}
+
+		const normalized = files
+			.filter((f) => f && f.fileTelegramId)
+			.map((f) => ({
+				...f,
+				fileTelegramId: String(f.fileTelegramId)
+			}));
+
+		if (normalized.length === 0) {
+			return [];
+		}
+
+		const newFiles = new Set(await getNewTelegramIds(normalized.map((f) => f.fileTelegramId)))
+
+		const uniqueToInsertMap = new Map<string, (typeof normalized)[number]>();
+		normalized.forEach(f => {
+			if (newFiles.has(f.fileTelegramId) && !uniqueToInsertMap.has(f.fileTelegramId)) {
+				uniqueToInsertMap.set(f.fileTelegramId, f);
+			}
+		});
+		const toInsert = Array.from(uniqueToInsertMap.values());
+
+		if (toInsert.length === 0) {
+			return [];
+		}
+
+		const result = await db
+			.insert(userFiles)
+			.values(
+				toInsert.map((file) => {
+					const mimeType = file.mimeType;
+					return {
+						userId: user.id,
+						fileName: file.fileName,
+						mimeType,
+						size: file.size,
+						url: file.url,
+						date: file.date ?? new Date().toDateString(),
+						fileTelegramId: String(file.fileTelegramId),
+						category: mimeType.split('/')[0],
+						folderId: file.folderId
+					};
+				})
+			)
+			.returning();
+
+		revalidatePath('/files');
+		return result;
+	} catch (err) {
+		if (err instanceof Error) {
+			console.error('Error importing synced files:', err?.message);
+			throw new Error('Failed to sync files. Please try again later.');
+		}
+		throw err;
+	}
+}
+
+export async function getNewTelegramIds(telegramIds: string[]) {
+	try {
+		const user = await getUser();
+		if (!user || !user.id) {
+			throw new Error('User not authenticated or user ID is missing');
+		}
+
+		if (!Array.isArray(telegramIds) || telegramIds.length === 0) {
+			return [];
+		}
+
+		const existing = await db
+			.select({ fileTelegramId: userFiles.fileTelegramId })
+			.from(userFiles)
+			.where(
+				and(
+					eq(userFiles.userId, user.id),
+					inArray(userFiles.fileTelegramId, telegramIds)
+				)
+			)
+			.execute();
+
+		const existingSet = new Set(existing.map((e) => e.fileTelegramId).filter(Boolean));
+		return telegramIds.filter((id) => !existingSet.has(id));
+	} catch (err) {
+		console.error('Error checking for new telegram ids:', err);
+		return telegramIds;
 	}
 }
 
@@ -455,7 +553,6 @@ export async function uploadFile(file: {
 		const result = await db
 			.insert(userFiles)
 			.values({
-				id: await generateId(),
 				userId: user.id,
 				fileName: file.fileName,
 				mimeType: file.mimeType,
@@ -493,15 +590,6 @@ export async function deleteFile(fileId: number) {
 		}
 	}
 }
-
-async function generateId() {
-	const result = await db.select().from(userFiles).orderBy(desc(userFiles.id)).limit(1);
-
-	const latestRecord = result[0];
-	const newId = latestRecord ? latestRecord.id + 1 : 1;
-	return newId;
-}
-
 export const requireUserAuthentication = async () => {
 	const user = await getUser();
 	if (!user) {
@@ -588,14 +676,39 @@ export const clearCookies = async () => {
 export const deleteChannelDetail = async () => {
 	const user = await getUser();
 	if (!user?.id) throw new Error('Failed to get user');
-	await db
+	return await db
 		.update(usersTable)
 		.set({
 			channelId: null,
 			accessHash: null,
 			channelTitle: null
 		})
-		.where(eq(usersTable.id, user?.id));
-	redirect('/connect-telegram');
+		.where(eq(usersTable.id, user?.id)).returning();
+};
 
+
+export const clearUserFiles = async () => {
+	try {
+		const user = await getUser();
+		if (!user?.id) throw new Error('Failed to get user');
+		return await db.delete(userFiles).where(eq(userFiles.userId, user.id)).returning();
+	} catch (err) {
+		console.error(err);
+		return null;
+	}
+};
+
+
+export const clearFilesAndChannelDetails = async () => {
+	try {
+		const result = await Promise.all([
+			clearUserFiles(),
+			deleteChannelDetail()
+		])
+		const isSuccess = result.every((item) => item && item.length > 0);
+		return isSuccess;
+	} catch (err) {
+		console.error(err);
+		return null;
+	}
 };

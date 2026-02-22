@@ -15,6 +15,13 @@
       "when": 1770539064864,
       "tag": "0001_lazy_the_liberteens",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771655632345,
+      "tag": "0002_fearless_marvex",
+      "breakpoints": true
     }
   ]
 }

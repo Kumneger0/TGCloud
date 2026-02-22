@@ -1,5 +1,5 @@
 'use client';
-import { deleteFile, saveTelegramCredentials } from '@/actions';
+import { clearFilesAndChannelDetails, deleteFile, saveTelegramCredentials } from '@/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,7 +22,8 @@ import {
 	MediaCategory,
 	MediaSize,
 	QUERY_KEYS,
-	removeCachedFile
+	removeCachedFile,
+	telegramErrorMessagesThatNeedReLogin
 } from '@/lib/utils';
 import fluidPlayer from 'fluid-player';
 import { Loader2, Minimize2, Pause, Play, TrashIcon } from 'lucide-react';
@@ -42,16 +43,19 @@ import FileContextMenu from './fileContextMenu';
 import { FileModalView } from './fileModalView';
 import Upload from './uploadWrapper';
 
-import { useGlobalModal } from '@/store/global-modal';
 import { streamMedia } from '@/lib/video-stream';
+import { useGlobalModal } from '@/store/global-modal';
 import { useGlobalStore } from '@/store/global-store';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { TelegramClient } from 'telegram';
+import { ErrorState } from './ErrorState';
+import { SyncFromTelegramModal } from './SyncFromTelegramModal';
 
 function Files({
 	user,
-	files
+	files,
+	currentFolderId
 }: {
 	user: User & {
 		telegramSession: string | undefined;
@@ -59,8 +63,7 @@ function Files({
 		botTokens: { token: string }[];
 	};
 	mimeType?: string;
-	files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
-	folders: NonNullable<GetAllFilesReturnType>['folders'] | undefined;
+		files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
 	currentFolderId: string | null;
 }) {
 	const sortBy = useGlobalStore((state) => state.sortBy);
@@ -69,10 +72,29 @@ function Files({
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
 	const setUser = useGlobalStore((s) => s.setUser);
 	const setClient = useGlobalStore((s) => s.setClient);
+
 	const [error, setError] = useState<string | null>(null);
 	const [isPending, setIsPending] = useState(true);
 	const client = useGlobalStore((s) => s.client);
 	const { closeModal, openModal } = useGlobalModal();
+	const router = useRouter();
+
+	const openSyncModal = () => {
+		openModal({
+			title: 'Sync from Telegram',
+			size: 'lg',
+			content: (
+				<SyncFromTelegramModal
+					currentFolderId={currentFolderId}
+					onSuccess={() => {
+						closeModal();
+						router.refresh();
+					}}
+					onClose={closeModal}
+				/>
+			)
+		});
+	};
 
 	useEffect(() => {
 		setUser(user);
@@ -106,43 +128,38 @@ function Files({
 						openModal({
 							forceDialog: true,
 							content: (
-								<div className="flex flex-col items-center gap-4 py-4 text-center">
-									<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-										<svg
-											xmlns="http://www.w3.org/2000/svg"
-											width="28"
-											height="28"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											strokeWidth="2"
-											strokeLinecap="round"
-											strokeLinejoin="round"
-											className="text-destructive"
-										>
-											<circle cx="12" cy="12" r="10" />
-											<line x1="12" y1="8" x2="12" y2="12" />
-											<line x1="12" y1="16" x2="12.01" y2="16" />
-										</svg>
-									</div>
-									<div className="space-y-1">
-										<h3 className="text-lg font-semibold">Channel Access Denied</h3>
-										<p className="text-sm text-muted-foreground max-w-xs">
-											We couldn&apos;t access your Telegram channel. Make sure the bot or account is
-											still an admin of the channel.
+								<ErrorState
+									title="Channel Access Denied"
+									description={
+										user.authType === 'bot'
+											? "We couldn't access your Telegram channel. Did you remove the bot from the channel or revoke its admin permissions?"
+											: "We couldn't access your Telegram channel. Did you delete the channel or leave it?"
+									}
+									warning={
+										<p>
+											If you proceed to reconnect, your current channel information will be deleted. <strong>You will lose access to all files stored in this channel through TGCloud.</strong>
 										</p>
-									</div>
-									<Button
-										variant="outline"
-										className="mt-2"
-										onClick={() => {
+									}
+									actionButton={{
+										label: 'Delete Detail & Connect New Channel',
+										variant: 'destructive',
+										onClick: async () => {
+											const result = await clearFilesAndChannelDetails();
+											if (result) {
+												closeModal()
+												router.push('/connect-telegram')
+											}
+										}
+									}}
+									secondaryAction={{
+										label: 'Go to Home',
+										variant: 'outline',
+										onClick: async () => {
 											closeModal();
 											router.push('/');
-										}}
-									>
-										Go to Home
-									</Button>
-								</div>
+										}
+									}}
+								/>
 							)
 						});
 						return;
@@ -155,46 +172,25 @@ function Files({
 				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : 'Failed to connnect to telegram';
-				if (message.includes('AUTH_KEY_DUPLICATED')) {
+				const needsReLogin = telegramErrorMessagesThatNeedReLogin.some(msg => message.includes(msg));
+				if (needsReLogin) {
 					openModal({
 						forceDialog: true,
 						content: (
-							<div className="flex flex-col items-center gap-4 py-4 text-center">
-								<div className="flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="28"
-										height="28"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-										className="text-destructive"
-									>
-										<circle cx="12" cy="12" r="10" />
-										<line x1="12" y1="8" x2="12" y2="12" />
-										<line x1="12" y1="16" x2="12.01" y2="16" />
-									</svg>
-								</div>
-								<div className="space-y-1">
-									<h3 className="text-lg font-semibold">Telegram Session Duplicated</h3>
-									<p className="text-sm text-muted-foreground max-w-xs">
-										You need to login with this telegram account again.
-									</p>
-								</div>
-								<Button
-									className="mt-2 w-full"
-									disabled={isUserLoading}
-									onClick={() => {
+							<ErrorState
+								title="Telegram Session Duplicated"
+								description="You need to login with this telegram account again."
+								actionButton={{
+									label: isUserLoading ? 'Connecting...' : 'Reconnect Account',
+									disabled: isUserLoading,
+									className: 'w-full',
+									onClick: async () => {
+										closeModal()
 										setIsUserLoading(true);
-										connectTelegramUser();
-									}}
-								>
-									{isUserLoading ? 'Connecting...' : 'Reconnect Account'}
-								</Button>
-							</div>
+										await connectTelegramUser();
+									}
+								}}
+							/>
 						)
 					});
 					return;
@@ -206,13 +202,10 @@ function Files({
 		};
 
 		getClient();
-	}, [user.telegramSession, user.authType]);
+	}, [user.telegramSession, user.authType, client?.connected]);
 
 	const [isUserLoading, setIsUserLoading] = useState(false);
-	const router = useRouter();
 	const [selectedFiles, setSelectedFiles] = useState<typeof files>([]);
-	const sortedFileKey = (Array.isArray(files) ? files?.map((file) => file.id) : []).join('-');
-
 	const sortedFiles = useMemo(() => {
 		if (!files || !Array.isArray(files) || files.length === 0) return [];
 		if (sortBy === 'name') return [...files].sort((a, b) => a.fileName.localeCompare(b.fileName));
@@ -221,7 +214,7 @@ function Files({
 		if (sortBy === 'size') return [...files].sort((a, b) => Number(a.size) - Number(b.size));
 		return [...files].sort((a, b) => a.mimeType.localeCompare(b.mimeType));
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [sortedFileKey, sortBy]);
+	}, [files, sortBy]);
 
 	const handleCheckboxChange = useCallback(
 		(file: (typeof sortedFiles)[number], checked: boolean) => {
@@ -470,7 +463,10 @@ function Files({
 
 	return (
 		<div className="w-full h-full">
-			<div className="flex justify-end my-2">
+			<div className="flex justify-end my-2 gap-2">
+				<Button variant="outline" onClick={openSyncModal}>
+					Sync from Telegram
+				</Button>
 				{!!(selectedFiles as Array<FileItem>)?.length && (
 					<DeleteAllFiles deleteFn={async () => await batchDelete()}>
 						<Button className="py-2 px-4 self-end" variant="destructive">
@@ -547,7 +543,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 	const { data, isPending, error } = useQuery({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
-			if (file.category !== 'video') {
+			if (file.category === 'image') {
 				return await withTelegramConnection(client, async (client) => {
 					const result = await downloadMedia(
 						{
@@ -591,19 +587,22 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 
 	useEffect(() => {
 		const idleId = requestIdleCallback(async () => {
-			const largeURL = await withTelegramConnection(client, async (client) => {
-				const result = await downloadMedia(
-					{
-						user,
-						messageId: file?.fileTelegramId,
-						size: 'large',
-						category: file.category as MediaCategory
-					},
-					client
-				);
-				return { ...result, notFound: result?.notFound ?? false };
-			});
-			setLargeURL(largeURL?.url ?? null);
+			if (file.category == 'image') {
+				const largeURL = await withTelegramConnection(client, async (client) => {
+					const result = await downloadMedia(
+						{
+							user,
+							messageId: file?.fileTelegramId,
+							size: 'large',
+							category: file.category as MediaCategory
+						},
+						client
+					);
+					return { ...result, notFound: result?.notFound ?? false };
+				});
+				setLargeURL(largeURL?.url ?? null);
+			}
+
 		});
 		return () => cancelIdleCallback(idleId);
 	}, []);
@@ -660,6 +659,8 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		}
 	];
 
+
+
 	return (
 		<FileContextMenu fileContextMenuActions={fileContextMenuActions}>
 			<Card
@@ -696,11 +697,11 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url!} />
 							}
 						>
-							<ImageRender fileName={file.fileName} url={url!} />
+							<ImageRender fileName={file.fileName} url={url || getFilePlaceholder(file)} />
 						</FileModalView>
 					) : null}
 					{file.category == 'application' ? (
-						<ImageRender fileName={file.fileName} url={url!} />
+						<ImageRender fileName={file.fileName} url={url || getFilePlaceholder(file)} />
 					) : null}
 					{file.category == 'video' ? (
 						<FileModalView
@@ -943,7 +944,7 @@ function AudioMediaView({
 	const [currentTime, setCurrentTime] = useState(0);
 	const duration = audioPlayer?.duration;
 	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
-	const isLoading = audioPlayer?.isLoading
+	const isLoading = audioPlayer?.isLoading;
 
 	useEffect(() => {
 		if (!isCurrentFile) {
