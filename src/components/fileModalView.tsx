@@ -2,6 +2,7 @@
 
 import { useCreateQueryString } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
+import { useGlobalStore } from '@/store/global-store';
 import { useQueryClient } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
@@ -9,7 +10,7 @@ export function FileModalView({
 	children,
 	modalContent,
 	id,
-	queryKey
+	queryKey,
 }: {
 	children: React.ReactNode;
 		modalContent: React.ReactNode;
@@ -21,21 +22,26 @@ export function FileModalView({
 	const pathname = usePathname();
 	const router = useRouter();
 	const queryClient = useQueryClient();
-	const { openModal } = useGlobalModal();
+	const openModal = useGlobalModal(s => s.openModal);
+	const audioRef = useGlobalStore(s => s.audioRef)
+
 
 	const handleOpen = () => {
 		router.push(pathname + '?' + createQueryString('open', id.toString()));
 		openModal({
 			content: modalContent,
 			size: 'lg',
-			onClose: async () => {
+			onClose: async (closeMediaOnClose: boolean) => {
 				await queryClient.invalidateQueries({ queryKey: [queryKey] });
 				router.push(pathname);
+				if (closeMediaOnClose) {
+					audioRef?.current?.pause();
+				}
 			}
 		});
 	};
 
-	return (
+	return (	
 		<button
 			type="button"
 			className="w-full text-left"

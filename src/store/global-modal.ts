@@ -6,11 +6,11 @@ interface GlobalModalState {
     title?: string
     content?: ReactNode
     className?: string
-    onClose?: () => void
+    onClose?: (closeMediaOnClose: boolean) => void
     forceDialog?: boolean
     size?: 'sm' | 'md' | 'lg'
-    openModal: (params: { title?: string; content: ReactNode; onClose?: () => void; forceDialog?: boolean; size?: 'sm' | 'md' | 'lg' }) => void
-    closeModal: () => void
+    openModal: (params: { title?: string; content: ReactNode; onClose?: (closeMediaOnClose: boolean) => void; forceDialog?: boolean; size?: 'sm' | 'md' | 'lg'; closeMediaOnClose?: boolean }) => void
+    closeModal: (closeMediaOnClose?: boolean) => void
 }
 
 export const useGlobalModal = create<GlobalModalState>((set) => ({
@@ -23,9 +23,9 @@ export const useGlobalModal = create<GlobalModalState>((set) => ({
     forceDialog: false,
     openModal: ({ title, content, onClose, forceDialog, size }) =>
         set({ isOpen: true, title, content, onClose, forceDialog, size: size ?? 'sm' }),
-    closeModal: () =>
+    closeModal: (closeMediaOnClose?: boolean) =>
         set((state) => {
-            state.onClose?.()
+            state.onClose?.(closeMediaOnClose ?? true)
             return {
                 isOpen: false,
                 title: undefined,

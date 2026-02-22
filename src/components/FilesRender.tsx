@@ -514,7 +514,7 @@ function DeleteAllFiles({
 						Telegram channel.
 					</p>
 					<div className="flex justify-end gap-3">
-						<Button variant="outline" onClick={closeModal}>
+						<Button variant="outline" onClick={() => closeModal()}>
 							Cancel
 						</Button>
 						<Button
@@ -540,6 +540,8 @@ export default Files;
 const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
 	const client = useGlobalStore((s) => s.client)!;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
+	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
+	const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
 	const { data, isPending, error } = useQuery({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
@@ -939,6 +941,8 @@ function AudioMediaView({
 	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
 	const setAudioPlayer = useGlobalStore((s) => s.setAudioPlayer);
 	const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
+
+	const closeModal = useGlobalModal(s => s.closeModal)
 	const audioRef = useGlobalStore((s) => s.audioRef);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
@@ -1010,7 +1014,7 @@ function AudioMediaView({
 	};
 
 	const handleMinimize = () => {
-		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+		closeModal(false)
 		updateAudioPlayer({ isMinimized: true });
 	};
 

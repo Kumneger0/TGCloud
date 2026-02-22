@@ -2,9 +2,10 @@ import { Button } from '@/components/ui/button';
 import { promiseToast } from '@/lib/notify';
 import { User } from '@/lib/types';
 import { formatBytes, uploadFiles } from '@/lib/utils';
+import { useGlobalModal } from '@/store/global-modal';
 import { useGlobalStore } from '@/store/global-store';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Dispatch, SetStateAction, useState } from 'react';
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Dropzone from 'react-dropzone';
 import { CloudUploadIcon, FileIcon, TrashIcon, UploadIcon, XIcon } from './Icons/icons';
@@ -16,10 +17,8 @@ interface DropedFile {
 
 export const UploadFiles = ({
 	user,
-	setOpen
 }: {
-	user: User;
-	setOpen: Dispatch<SetStateAction<boolean>>;
+		user: User;
 }) => {
 	const router = useRouter();
 	const [dropedfiles, setFiles] = useState<DropedFile[]>([]);
@@ -28,6 +27,7 @@ export const UploadFiles = ({
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const setUploadProgress = useGlobalStore((state) => state.setUploadProgress);
 	const client = useGlobalStore(s => s.client)
+	const { closeModal } = useGlobalModal();
 
 	const handleDrop = (acceptedFiles: File[]) => {
 		const files = acceptedFiles.map((file) => ({
@@ -44,7 +44,7 @@ export const UploadFiles = ({
 
 		await promiseToast({
 			cb: () => {
-				setOpen(false);
+				closeModal();
 				return uploadFiles(formData, user, setUploadProgress, client, folderId);
 			},
 			errMsg: 'We apologize, but there was an error uploading your files',
