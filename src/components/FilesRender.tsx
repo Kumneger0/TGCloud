@@ -540,8 +540,6 @@ export default Files;
 const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
 	const client = useGlobalStore((s) => s.client)!;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
-	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
-	const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
 	const { data, isPending, error } = useQuery({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
@@ -949,16 +947,19 @@ function AudioMediaView({
 	const duration = audioPlayer?.duration;
 	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
 	const isLoading = audioPlayer?.isLoading;
-
 	useEffect(() => {
 		if (!isCurrentFile) {
+			if (audioRef?.current) {
+				audioRef?.current?.pause();
+				audioRef.current.currentTime = 0;
+			}
 			setAudioPlayer({
 				fileData: {
 					...fileData,
 					folderId: '0',
 					date: fileData.date ?? new Date().toISOString()
 				} as FileItem,
-				isLoading: false,
+				isLoading: !!audioPlayer?.isLoading,
 				blobURL: '',
 				isMinimized: false,
 				duration: 0,
@@ -967,12 +968,11 @@ function AudioMediaView({
 		} else {
 			updateAudioPlayer({ isMinimized: false });
 		}
-	}, []);
+	}, [isCurrentFile, audioPlayer?.fileTelegramId]);
 
 	useEffect(() => {
 		const el = audioRef?.current;
 		if (!el) return;
-
 		const onPlay = () => setIsPlaying(true);
 		const onPause = () => setIsPlaying(false);
 		const onTimeUpdate = () => setCurrentTime(el.currentTime);
