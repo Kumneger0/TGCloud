@@ -16,7 +16,7 @@ export default function GlobalAudioPlayer() {
     const audioPlayer = useGlobalStore((s) => s.audioPlayer);
     const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
     const user = useGlobalStore((s) => s.user);
-    const client = useGlobalStore(s => s.client)
+    const client = useGlobalStore(s => s.client);
 
     useEffect(() => {
         setAudioRef(audioRef);
@@ -36,7 +36,6 @@ export default function GlobalAudioPlayer() {
         }
 
         const startStream = async () => {
-
             try {
                 if (!client) return;
                 if (!client.connected) await client.connect();
