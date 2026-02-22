@@ -23,11 +23,7 @@ export default function DrawerDialogDemo({ user }: { user: User }) {
 				</DialogTrigger>
 				<DialogContent className="w-[700px]">
 					<DialogTitle className="sr-only">upload file</DialogTitle>
-					{/* {user?.isSubscribedToPro ? ( */}
 					<UploadFiles setOpen={setOpen} user={user} />
-					{/* ) : ( */}
-					{/* <TGCloudPricing /> */}
-					{/* )} */}
 				</DialogContent>
 			</Dialog>
 		);
@@ -45,11 +41,7 @@ export default function DrawerDialogDemo({ user }: { user: User }) {
 				</DialogTrigger>
 			</DrawerTrigger>
 			<DrawerContent className="h-4/5">
-				{/* {user?.isSubscribedToPro ? ( */}
 				<UploadFiles setOpen={setOpen} user={user} />
-				{/* ) : ( */}
-				{/* <TGCloudPricing /> */}
-				{/* )} */}
 			</DrawerContent>
 		</Drawer>
 	);

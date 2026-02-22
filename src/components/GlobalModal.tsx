@@ -28,7 +28,7 @@ export const GlobalModal = () => {
                     className
                 )}>
                     <DialogHeader>
-                        {title && <DialogTitle>{title}</DialogTitle>}
+                        <DialogTitle>{title ?? ""}</DialogTitle>
                     </DialogHeader>
                     {content}
                 </DialogContent>
@@ -42,7 +42,7 @@ export const GlobalModal = () => {
                 isLarge ? "h-[90dvh]" : "max-h-[90dvh]",
                 className
             )}>
-                {title && <div className="p-4 font-semibold text-lg">{title}</div>}
+                <div className="p-4 font-semibold text-lg">{title}</div>
                 <div className="overflow-y-auto px-4 pb-8">
                     {content}
                 </div>

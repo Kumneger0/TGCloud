@@ -1,3 +1,5 @@
+import { env } from '@/env';
+import { relations } from 'drizzle-orm';
 import {
 	bigint,
 	boolean,
@@ -9,8 +11,6 @@ import {
 	timestamp,
 	uniqueIndex
 } from 'drizzle-orm/pg-core';
-import { env } from '@/env';
-import { relations } from 'drizzle-orm';
 
 export const planEnum = pgEnum('plan', ['ANNUAL', 'MONTHLY']);
 export const authTypeEnum = pgEnum('authType', ['user', 'bot']);
@@ -194,7 +194,7 @@ export const folders = pgTable(
 export const userFiles = pgTable(
 	'userFiles',
 	{
-		id: bigint('id', { mode: 'number' }).primaryKey(),
+		id: bigint('id', { mode: 'number' }).generatedAlwaysAsIdentity().primaryKey(),
 		userId: text('userId').notNull(),
 		folderId: text('folderId'),
 		fileName: text('filename').notNull(),

@@ -11,7 +11,7 @@ import { useGlobalStore } from '@/store/global-store';
 import { AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
-import { useCallback, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -57,25 +57,17 @@ export default function Component({ user }: Props) {
 
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 
-	const clientPromiseRef = useRef<ReturnType<typeof getTgClient> | null>(null);
-
-	const getClient = useCallback(async () => {
-		if (!clientPromiseRef.current) {
-			clientPromiseRef.current = getTgClient({
-				stringSession: user.telegramSession ?? '',
-				authType: 'user'
-			});
-		}
-		return await clientPromiseRef.current;
-	}, [user.telegramSession]);
-
 	async function connectTelegramUser() {
 		try {
 			setIsUserLoading(true);
 
 			let newSession: string | undefined;
 
-			const clientInstance = await getClient();
+			const clientInstance = await getTgClient({
+				stringSession: user.telegramSession ?? '',
+				authType: 'user'
+			});
+
 			if (!clientInstance) {
 				toast.error('Failed to initialize Telegram client');
 				return;
