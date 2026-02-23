@@ -6,7 +6,7 @@ import { messageCacheDb } from '@/lib/dexie';
 import { getTgClient } from '@/lib/getTgClient';
 import { withTelegramConnection } from '@/lib/telegramMutex';
 import { FileItem } from '@/lib/types';
-import { cn, downloadMedia, formatBytes, generateVideoThumbnail, getFilePlaceholder, getMediaCategory, getMessage, MediaCategory } from '@/lib/utils';
+import { cn, downloadMedia, downloadVideoThumbnail, formatBytes, getFilePlaceholder, getMediaCategory, getMessage, MediaCategory } from '@/lib/utils';
 import { useGlobalStore } from '@/store/global-store';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2 } from 'lucide-react';
@@ -508,7 +508,7 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 					}) as any;
 				});
 				if (media) {
-					return await generateVideoThumbnail(client, media);
+					return (await downloadVideoThumbnail(client, media))?.url
 				}	
 			}
 			return getFilePlaceholder({ category: c.category, mimeType: c.mimeType });

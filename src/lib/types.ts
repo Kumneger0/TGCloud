@@ -56,7 +56,7 @@ interface Message {
 			};
 			date: number;
 			mimeType: string;
-			size: string;
+			size: string | number | { value: string | number | bigint };
 			thumbs: (
 				| {
 						type: 'i';

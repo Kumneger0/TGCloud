@@ -35,17 +35,18 @@ type StreamMediaArgs = {
 }
 
 export const streamMedia = async (
-	{ client, media, mimeType, mediaSource, signal }: StreamMediaArgs,
+	{ client, media, mimeType, mediaSource, signal, }: StreamMediaArgs,
+	onError: (error: unknown) => void
 ) => {
 	if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
-		return streamDirectAudio(client, media, mimeType, mediaSource, signal);
+		return streamDirectAudio(client, media, mimeType, mediaSource, signal, onError);
 	}
 
 	if (mimeType === 'video/webm') {
-		return streamWebM(client, media, mediaSource, mimeType, signal);
+		return streamWebM(client, media, mediaSource, mimeType, signal, onError);
 	}
 
-	return streamMP4(client, media, mediaSource, signal);
+	return streamMP4(client, media, mediaSource, signal, onError);
 };
 
 const streamWebM = async (
@@ -53,7 +54,8 @@ const streamWebM = async (
 	media: Message['media'],
 	mediaSource: MediaSource,
 	mimeType: string,
-	signal: AbortSignal
+	signal: AbortSignal,
+	onError: (error: unknown) => void
 ) => {
 	signal.throwIfAborted()
 	const codec = getVideoCodec(mimeType);
@@ -112,6 +114,7 @@ const streamWebM = async (
 				}, 100);
 
 			} catch (err) {
+				onError(err);
 				console.error('Error in WebM streaming:', err);
 				if (mediaSource.readyState === 'open') {
 					mediaSource.endOfStream('decode');
@@ -129,7 +132,8 @@ const streamDirectAudio = async (
 	media: Message['media'],
 	mimeType: string,
 	mediaSource: MediaSource,
-	signal: AbortSignal
+	signal: AbortSignal,
+	onError: (error: unknown) => void
 ) => {
 	signal.throwIfAborted()
 	if (MediaSource.isTypeSupported(mimeType)) {
@@ -201,6 +205,7 @@ const streamDirectAudio = async (
 					}, 100);
 
 				} catch (err) {
+					onError(err);
 					console.error('error in audio streaming:', err);
 					if (mediaSource.readyState === 'open') {
 						mediaSource.endOfStream('decode');
@@ -218,6 +223,7 @@ const streamMP4 = async (
 	media: Message['media'],
 	mediaSource: MediaSource,
 	signal: AbortSignal,
+	onError: (error: unknown) => void
 ) => {
 	signal.throwIfAborted();
 
@@ -229,9 +235,18 @@ const streamMP4 = async (
 		let isAppending = false;
 		let isEnded = false;
 
-		const fileSize = (media as any).document?.size?.value
-			? Number((media as any).document.size.value)
-			: Infinity;
+
+		let fileSize = Infinity;
+		if (media && 'document' in media && media.document && 'size' in media.document) {
+			const size = media.document.size;
+			if (typeof size === 'object' && 'value' in size) {
+				fileSize = Number(size.value);
+			} else if (typeof size === 'number') {
+				fileSize = size;
+			} else if (typeof size === 'string') {
+				fileSize = Number(size);
+			}
+		}
 
 		const safeEndStream = (error?: EndOfStreamError) => {
 			if (
@@ -278,6 +293,7 @@ const streamMP4 = async (
 		mp4boxfile.onError = (e: any) => {
 			console.error("MP4Box error:", e);
 			safeEndStream("decode");
+			onError(e);
 			reject(e);
 		};
 
@@ -338,7 +354,12 @@ const streamMP4 = async (
 			mediaSource.removeEventListener("sourceopen", onSourceOpen);
 
 			let offset = 0;
-			const chunkSize = 5 * 1024 * 1024;
+			const chunkSize =
+				fileSize < 50 * 1024 * 1024
+					? 1 * 1024 * 1024
+					: fileSize < 200 * 1024 * 1024
+						? 5 * 1024 * 1024
+						: 10 * 1024 * 1024;
 
 			try {
 				while (offset < fileSize && mediaSource.readyState === "open") {
@@ -375,6 +396,7 @@ const streamMP4 = async (
 
 				mp4boxfile.flush();
 			} catch (err) {
+				onError(err);
 				console.error("Streaming error:", err);
 				safeEndStream("decode");
 				reject(err);

@@ -24,6 +24,7 @@ export function FileModalView({
 	const queryClient = useQueryClient();
 	const openModal = useGlobalModal(s => s.openModal);
 	const audioRef = useGlobalStore(s => s.audioRef)
+	const videoRef = useGlobalStore(s => s.videoRef)
 	const abortController = useGlobalStore(s => s.abortController)
 	const setAbortController = useGlobalStore(s => s.setAbortController)
 
@@ -37,6 +38,7 @@ export function FileModalView({
 				router.push(pathname);
 				if (closeMediaOnClose) {
 					abortController?.abort();
+					videoRef?.current?.pause();
 					setAbortController(new AbortController());
 					audioRef?.current?.pause();
 				}

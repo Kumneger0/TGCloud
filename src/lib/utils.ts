@@ -388,57 +388,27 @@ export const handleMediaDownload = async (
 };
 
 export const downloadVideoThumbnail = async (
-	user: User,
 	client: TelegramClient,
 	media: Message['media']
 ) => {
-	const thumbnail = media.document.thumbs;
-	if (!thumbnail) return;
+	const thumbs = media.document.thumbs;
+	if (!thumbs || thumbs.length === 0) return;
 
-	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
-		thumb: 1
-	});
-	if (!buffer) return;
-	return { blob: new Blob([buffer as BlobPart]), url: URL.createObjectURL(new Blob([buffer as BlobPart])) };
-};
-
-export async function generateVideoThumbnail(client: TelegramClient, media: Message['media']) {
-	const buffers: BlobPart[] = [];
-	for await (const buffer of client.iterDownload({
-		file: media as unknown as Api.TypeMessageMedia,
-		requestSize: 1 * 1024 * 1024
-	})) {
-		buffers.push(buffer as BlobPart);
-		break;
+	let largestIndex = 0;
+	let largestArea = 0;
+	for (let i = 0; i < thumbs.length; i++) {
+		const t = thumbs[i] as { w?: number; h?: number };
+		const area = (t.w ?? 0) * (t.h ?? 0);
+		if (area > largestArea) {
+			largestArea = area;
+			largestIndex = i;
+		}
 	}
 
-	const blob = new Blob(buffers, { type: 'video/mp4' });
-	const video = document.createElement('video');
-	video.src = URL.createObjectURL(blob);
-	video.crossOrigin = 'anonymous';
-	video.preload = 'metadata';
-	video.muted = true;
-	video.playsInline = true;
-
-	await new Promise((resolve) => {
-		video.onloadedmetadata = () => {
-			video.currentTime = Math.min(1, video.duration / 2);
-			resolve(void 0);
-		};
+	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
+		thumb: largestIndex
 	});
-
-	await new Promise((resolve) => {
-		video.onseeked = () => resolve(void 0);
-	});
-
-	const canvas = document.createElement('canvas');
-	const ctx = canvas.getContext('2d');
-
-	canvas.width = video.videoWidth;
-	canvas.height = video.videoHeight;
-
-	ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-	const thumbnail = canvas.toDataURL('image/jpeg', 0.9);
-	return thumbnail;
-}
+	if (!buffer) return;
+	const blob = new Blob([buffer as BlobPart]);
+	return { blob, url: URL.createObjectURL(blob) };
+};
