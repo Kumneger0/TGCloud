@@ -77,3 +77,7 @@
 		@apply bg-background text-foreground;
 	}
 }
+
+.fluid_controls_progress_container {
+	display: none !important;
+}

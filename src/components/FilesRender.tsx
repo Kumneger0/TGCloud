@@ -841,6 +841,10 @@ const VideoMediaView = React.memo(
 				playerRef.current = fluidPlayer(self.current!, {
 					layoutControls: {
 						allowDownload: false,
+						controlForwardBackward: {
+							show: false,
+							doubleTapMobile: false
+						},
 						autoPlay: true,
 						logo: {
 							imageUrl: '/TGCloud_PWA_icon_96x96.png',
@@ -857,6 +861,7 @@ const VideoMediaView = React.memo(
 						}
 					}
 				});
+
 			}
 		}, [fileData.id]);
 
