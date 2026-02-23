@@ -14,6 +14,7 @@ type SortBy = 'name' | 'size' | 'type' | 'date';
 
 export interface AudioPlayerState {
 	fileData: FileItem;
+	error: unknown | null;
 	fileTelegramId: string;
 	isMinimized: boolean;
 	duration: number;
@@ -44,8 +45,10 @@ type GlobalStoreType = {
 	updateAudioPlayer: (partial: Partial<AudioPlayerState>) => void;
 
 	audioRef: RefObject<HTMLAudioElement | null> | null;
+	videoRef: RefObject<HTMLVideoElement | null> | null;
 	abortController: AbortController | null;
 	setAudioRef: (ref: RefObject<HTMLAudioElement | null>) => void;
+	setVideoRef: (ref: RefObject<HTMLVideoElement | null>) => void;
 	setAbortController: (abortController: AbortController | null) => void;
 };
 
@@ -74,7 +77,9 @@ export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
 	},
 
 	audioRef: null,
+	videoRef: null,
 	setAudioRef: (ref) => set({ audioRef: ref }),
+	setVideoRef: (ref) => set({ videoRef: ref }),
 	abortController: null,
 	setAbortController: (abortController) => set({ abortController }),
 }));

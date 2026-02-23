@@ -13,8 +13,8 @@ import {
 	canWeAccessTheChannel,
 	deleteItem,
 	downloadMedia,
+	downloadVideoThumbnail,
 	formatBytes,
-	generateVideoThumbnail,
 	getCacheKey,
 	getFilePlaceholder,
 	getMessage,
@@ -540,6 +540,7 @@ export default Files;
 const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
 	const client = useGlobalStore((s) => s.client)!;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
+	const { openModal, closeModal } = useGlobalModal();
 	const { data, isPending, error } = useQuery({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
@@ -570,7 +571,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 			if (file.category == 'video') {
 				const media = (await getMessage({
 					client,
-					messageId: file.fileTelegramId,
+					messageId: file.fileTelegramId,	
 					user: user as NonNullable<User>
 				})) as Message['media'] | null | undefined;
 
@@ -578,8 +579,8 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					return { notFound: true };
 				}
 
-				const thumbnail = await generateVideoThumbnail(client, media);
-				return { thumbnail, notFound: false };
+				const thumbnail = await downloadVideoThumbnail(client, media);
+				return { thumbnail: thumbnail?.url, notFound: false };
 			}
 			return null;
 		}
@@ -607,7 +608,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		return () => cancelIdleCallback(idleId);
 	}, []);
 
-	const url = largeURL ?? data?.url;
+	const url = file.category === 'video' ? videoData?.thumbnail : largeURL ?? data?.url;
 	const notFound = data?.notFound || videoData?.notFound;
 	const router = useRouter();
 
@@ -615,15 +616,41 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		{
 			actionName: 'save',
 			onClick: async () => {
-				if (!url) return;
-				const link = document.createElement('a');
-				link.href = url!;
-				link.download = file.fileName!;
-				link.click();
+				const telegramLink = `https://t.me/c/${(user.channelId ?? '').replace('-100', '')}/${file.fileTelegramId}`;
+				openModal({
+					title: '📥 Save this file',
+					forceDialog: true,
+					content: (
+						<div className="space-y-4">
+							<p className="text-sm text-muted-foreground">
+								Your files are stored in Telegram, so to save them you just need to open the
+								file in Telegram and tap <strong>Download</strong> there — it&apos;s quick
+								and easy!
+							</p>
+							<p className="text-sm text-muted-foreground">
+								Click <strong>&quot;Open in Telegram&quot;</strong> below and Telegram will
+								open the file for you. From there, hit the download button to save it to
+								your device.
+							</p>
+							<div className="flex justify-end gap-3">
+								<Button variant="outline" onClick={() => closeModal()}>
+									Cancel
+								</Button>
+								<Button
+									onClick={() => {
+										closeModal();
+										window.open(telegramLink, '_blank', 'noopener,noreferrer');
+									}}
+								>
+									Open in Telegram
+								</Button>
+							</div>
+						</div>
+					)
+				});
 			},
 			Icon: CloudDownload,
-			className: `flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted ${!url ? 'cursor-not-allowed opacity-50' : ''
-				}`
+			className: 'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted'
 		},
 		{
 			actionName: 'delete',
@@ -718,7 +745,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							}
 						>
 							<div className="w-full h-full min-w-full flex-1 relative">
-								<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ''} />
+								<ImageRender key={url} fileName={file.fileName} url={url ?? getFilePlaceholder(file) ?? ''} />
 								<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
 									<Play className="text-black bg-white p-2 rounded-full h-14 w-14" />
 								</div>
@@ -795,6 +822,8 @@ const VideoMediaView = React.memo(
 		const abortController = useGlobalStore(s => s.abortController)
 		const setAbortController = useGlobalStore(s => s.setAbortController)
 		const audioRef = useGlobalStore(s => s.audioRef)
+		const setVideoRef = useGlobalStore(s => s.setVideoRef)
+		const [error, setError] = useState<string | null>(null);
 
 
 		const { data: url } = useQuery({
@@ -821,8 +850,6 @@ const VideoMediaView = React.memo(
 				const mediaSource = new MediaSource();
 				const url = URL.createObjectURL(mediaSource);
 
-
-
 				withTelegramConnection(client, async (client) => {
 					await streamMedia({
 						client,
@@ -830,6 +857,12 @@ const VideoMediaView = React.memo(
 						mimeType: fileData.mimeType,
 						mediaSource,
 						signal: newAbortController.signal
+					}, (err: unknown) => {
+						if (err instanceof Error) {
+							setError(err.message);
+						} else {
+							setError('Failed to stream media');
+						}
 					});
 				});
 				return url;
@@ -838,6 +871,7 @@ const VideoMediaView = React.memo(
 
 		useEffect(() => {
 			if (!playerRef.current) {
+				setVideoRef(self)
 				playerRef.current = fluidPlayer(self.current!, {
 					layoutControls: {
 						allowDownload: false,
@@ -869,6 +903,17 @@ const VideoMediaView = React.memo(
 			<div className="flex flex-col h-full">
 				<div className="flex-1 overflow-y-auto">
 					<div className="relative aspect-video">
+						{error && (
+							<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
+								<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+									<circle cx="12" cy="12" r="10" />
+									<line x1="12" x2="12" y1="8" y2="12" />
+									<line x1="12" x2="12.01" y1="16" y2="16" />
+								</svg>
+								<p className="text-lg font-semibold text-white">Playback failed</p>
+								<p className="text-sm text-white/70 max-w-xs">Something went wrong while loading the video. This can happen due to a network issue or an unsupported format.</p>
+							</div>
+						)}
 						<video
 							ref={self}
 							controls
@@ -964,6 +1009,8 @@ function AudioMediaView({
 	const duration = audioPlayer?.duration;
 	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
 	const isLoading = audioPlayer?.isLoading;
+	const error = audioPlayer?.error
+
 	useEffect(() => {
 		if (!isCurrentFile) {
 			if (audioRef?.current) {
@@ -978,11 +1025,13 @@ function AudioMediaView({
 				} as FileItem,
 				isLoading: !!audioPlayer?.isLoading,
 				blobURL: '',
+				error: null,
 				isMinimized: false,
 				duration: 0,
 				fileTelegramId: fileData.fileTelegramId
 			});
 		} else {
+			audioRef?.current?.play();
 			updateAudioPlayer({ isMinimized: false });
 		}
 	}, [isCurrentFile, audioPlayer?.fileTelegramId]);
@@ -1038,7 +1087,18 @@ function AudioMediaView({
 	return (
 		<div className="flex flex-col h-full">
 			<div className="flex-1 overflow-y-auto">
-				<div className="relative aspect-square flex items-center justify-center bg-muted rounded-t-lg">
+				<div className="relative aspect-square flex items-center justify-center bg-muted rounded-t-lg overflow-hidden">
+					{!!error && (
+						<div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
+							<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+								<circle cx="12" cy="12" r="10" />
+								<line x1="12" x2="12" y1="8" y2="12" />
+								<line x1="12" x2="12.01" y1="16" y2="16" />
+							</svg>
+							<p className="text-lg font-semibold text-white">Playback failed</p>
+							<p className="text-sm text-white/70 max-w-xs leading-relaxed">Failed to play audio. The file might be corrupted or in an unsupported format.</p>
+						</div>
+					)}
 					<Image
 						src="/audio-placeholder.svg"
 						alt={fileData.fileName}
@@ -1081,6 +1141,7 @@ function AudioMediaView({
 							</span>
 						</div>
 					</div>
+
 
 					{/* Play / Pause */}
 					<div className="flex justify-center">

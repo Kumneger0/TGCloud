@@ -85,9 +85,12 @@ export default function GlobalAudioPlayer() {
                     mimeType: audioPlayer!.fileData.mimeType,
                     mediaSource,
                     signal: newAbortController.signal
+                }, (err) => {
+                    updateAudioPlayer({ error: err })
                 });
             } catch (err) {
                 console.error('[GlobalAudioPlayer] stream error:', err);
+                updateAudioPlayer({ error: err })
             }
         };
 

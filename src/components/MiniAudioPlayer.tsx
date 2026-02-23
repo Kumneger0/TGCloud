@@ -1,8 +1,7 @@
 'use client';
 import { formatBytes } from '@/lib/utils';
 import { useGlobalStore } from '@/store/global-store';
-import { duration } from 'drizzle-orm/gel-core';
-import { FileAudioIcon, Pause, Play as PlayIcon, X } from 'lucide-react';
+import { FileAudioIcon, Loader2, Pause, Play as PlayIcon, X } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 
@@ -10,9 +9,9 @@ const MiniAudioPlayer = React.memo(() => {
 	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
 	const setAudioPlayer = useGlobalStore((s) => s.setAudioPlayer);
 	const audioRef = useGlobalStore((s) => s.audioRef);
-
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
+
 
 	useEffect(() => {
 		const el = audioRef?.current;
@@ -42,6 +41,8 @@ const MiniAudioPlayer = React.memo(() => {
 	if (!audioPlayer || !audioPlayer.isMinimized) return null;
 
 	const { fileData } = audioPlayer;
+	const isLoading = audioPlayer.isLoading ?? false;
+	const error = audioPlayer.error;
 
 	const handlePlayPause = () => {
 		const el = audioRef?.current;
@@ -76,32 +77,46 @@ const MiniAudioPlayer = React.memo(() => {
 			/>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 truncate">
-					<FileAudioIcon className="w-4 h-4 text-primary flex-shrink-0" />
+					<FileAudioIcon className={`w-4 h-4 flex-shrink-0 ${error ? 'text-red-500' : 'text-primary'}`} />
 					<span className="truncate font-medium text-sm">{fileData?.fileName}</span>
 				</div>
-				<div className="flex justify-between text-xs text-muted-foreground mt-0.5">
-					<span>{formatBytes(Number(fileData?.size))}</span>
-					<span>
-						{audioPlayer.duration
-							? `${Math.floor(currentTime / 60)}:${('0' + Math.floor(currentTime % 60)).slice(-2)} / ${Math.floor(audioPlayer.duration / 60)}:${('0' + Math.floor(audioPlayer.duration % 60)).slice(-2)}`
-							: '--:--'}
-					</span>
-				</div>
+				{error ? (
+					<div className="text-[10px] bg-red-500/10 text-red-500 dark:text-red-400 font-bold mt-0.5 px-1.5 py-0.5 rounded border border-red-500/20 w-fit animate-pulse">
+						Playback Error
+					</div>
+				) : (
+						<div className="flex justify-between text-xs text-muted-foreground mt-0.5">
+							<span>{formatBytes(Number(fileData?.size))}</span>
+							<span>
+								{isLoading
+									? 'Loading…'
+									: audioPlayer.duration
+										? `${Math.floor(currentTime / 60)}:${('0' + Math.floor(currentTime % 60)).slice(-2)} / ${Math.floor(audioPlayer.duration / 60)}:${('0' + Math.floor(audioPlayer.duration % 60)).slice(-2)}`
+										: '--:--'}
+							</span>
+						</div>
+				)}
 				<input
 					type="range"
 					min={0}
 					max={audioPlayer.duration || 0}
 					value={currentTime}
 					onChange={handleSeek}
-					className="w-full mt-1 accent-primary h-1"
+					disabled={isLoading || !!error}
+					className={`w-full mt-1 accent-primary h-1 transition-opacity${isLoading || error ? ' opacity-40 cursor-not-allowed' : ''}`}
 				/>
 			</div>
 			<button
 				onClick={handlePlayPause}
-				className="rounded-full p-2 hover:bg-muted transition-colors flex-shrink-0"
-				aria-label={isPlaying ? 'Pause' : 'Play'}
+				disabled={isLoading || !!error}
+				className="rounded-full p-2 hover:bg-muted transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+				aria-label={isLoading ? 'Loading' : isPlaying ? 'Pause' : 'Play'}
 			>
-				{isPlaying ? <Pause className="w-5 h-5" /> : <PlayIcon className="w-5 h-5" />}
+				{isLoading
+					? <Loader2 className="w-5 h-5 animate-spin text-primary" />
+					: isPlaying
+						? <Pause className="w-5 h-5" />
+						: <PlayIcon className="w-5 h-5" />}
 			</button>
 			<button
 				onClick={handleClose}
