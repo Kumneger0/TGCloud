@@ -792,6 +792,10 @@ const VideoMediaView = React.memo(
 	}) => {
 		let self = useRef<HTMLVideoElement>(null);
 		const playerRef = useRef<FluidPlayerInstance>(undefined);
+		const abortController = useGlobalStore(s => s.abortController)
+		const setAbortController = useGlobalStore(s => s.setAbortController)
+		const audioRef = useGlobalStore(s => s.audioRef)
+
 
 		const { data: url } = useQuery({
 			queryKey: [queryKey],
@@ -809,15 +813,23 @@ const VideoMediaView = React.memo(
 					return message;
 				});
 
+				audioRef?.current?.pause()
+				abortController?.abort();
+				const newAbortController = new AbortController()
+				setAbortController(newAbortController)
+
 				const mediaSource = new MediaSource();
 				const url = URL.createObjectURL(mediaSource);
+
+
 
 				withTelegramConnection(client, async (client) => {
 					await streamMedia({
 						client,
 						media: message as Message['media'],
 						mimeType: fileData.mimeType,
-						mediaSource
+						mediaSource,
+						signal: newAbortController.signal
 					});
 				});
 				return url;

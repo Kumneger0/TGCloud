@@ -55,7 +55,7 @@
 		"fluid-player": "^3.57.0",
 		"lucide-react": "^0.402.0",
 		"markdown-to-jsx": "^7.7.17",
-		"mp4box": "^2.3.0",
+		"mp4box": "^0.5.3",
 		"next": "16.1.6",
 		"next-nprogress-bar": "^2.4.7",
 		"next-themes": "^0.3.0",
