@@ -97,14 +97,11 @@ export function SyncFromTelegramModal({
 				}
 				const cacheKey = `telegram-messages-${user.id}-${currentOffsetId}-${user.channelId}`;
 
-				const cachedMessages = await messageCacheDb.messageCache.get({ cacheKey });
-
-				const messages = await withTelegramConnection(tgClient, (c) =>
-					c.getMessages(entity, {
-						limit: TELEGRAM_BATCH_SIZE,
-						offsetId: currentOffsetId ? Number(currentOffsetId) : undefined
-					})
-				);
+				const cachedMessages = currentOffsetId ? await messageCacheDb.messageCache.get({ cacheKey }) : null;
+				const messages = await tgClient.getMessages(entity, {
+					limit: TELEGRAM_BATCH_SIZE,
+					offsetId: currentOffsetId ? Number(currentOffsetId) : undefined
+				})
 
 				if (!messages || messages.length === 0) {
 					hasMore = false;
@@ -123,10 +120,8 @@ export function SyncFromTelegramModal({
 				}
 				let mapped: SyncCandidate[] = [];
 				if (cachedMessages) {
-					console.log('cache hit')
 					mapped = cachedMessages.data
 				} else {
-					console.log('cache miss')
 					mapped = messages
 						.filter((m) => m && 'id' in m && m.id && 'media' in m && m.media)
 						.map((m) => {
@@ -179,10 +174,6 @@ export function SyncFromTelegramModal({
 							};
 						});
 				}
-
-
-
-
 
 				messageCacheDb.messageCache.add({
 					cacheKey,
@@ -491,11 +482,12 @@ export function SyncFromTelegramModal({
 
 function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 	const client = useGlobalStore((s) => s.client)!;
-	const user = useGlobalStore((s) => s.user)!;
+	const user = useGlobalStore((s) => s.user);
 
 	const { data: previewUrl, isPending } = useQuery({
 		queryKey: ['sync-preview', c.fileTelegramId],
 		queryFn: async () => {
+			if (!user) return null;
 			if (c.category === 'image') {
 				const result = await withTelegramConnection(client, async (client) => {
 					return await downloadMedia({
@@ -517,7 +509,7 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 				});
 				if (media) {
 					return await generateVideoThumbnail(client, media);
-				}
+				}	
 			}
 			return getFilePlaceholder({ category: c.category, mimeType: c.mimeType });
 		},

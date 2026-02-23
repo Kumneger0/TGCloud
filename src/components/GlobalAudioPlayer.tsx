@@ -15,6 +15,8 @@ export default function GlobalAudioPlayer() {
     const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
     const user = useGlobalStore((s) => s.user);
     const client = useGlobalStore(s => s.client);
+    const abortController = useGlobalStore(s => s.abortController);
+    const setAbortController = useGlobalStore(s => s.setAbortController);
 
     useEffect(() => {
         setAudioRef(audioRef);
@@ -35,25 +37,18 @@ export default function GlobalAudioPlayer() {
         }
 
         if (audioRef.current) {
-            console.log('setting the id', fileId)
             audioRef.current.id = fileId;
         }
 
-        console.log("starting the stream", client)
-
         const startStream = async () => {
-            console.log('inside the start stream', audioPlayer.fileData.fileName)
             try {
                 if (!client) {
-                    console.log('no client')
                     return;
                 };
                 if (!client.connected) {
-                    console.log('not connected')
                     await client.connect();
                 }
                 updateAudioPlayer({ isLoading: true })
-                console.log('inside the with telegram connection')
                 const message = await getMessage({
                     client: client,
                     messageId: fileId,
@@ -80,13 +75,16 @@ export default function GlobalAudioPlayer() {
                         updateAudioPlayer({ isLoading: false })
                     }
                 }
-
                 updateAudioPlayer({ blobURL: url, duration: duration ?? 0 });
+                abortController?.abort()
+                const newAbortController = new AbortController();
+                setAbortController(newAbortController);
                 void streamMedia({
                     client: client,
                     media: message as Message['media'],
                     mimeType: audioPlayer!.fileData.mimeType,
                     mediaSource,
+                    signal: newAbortController.signal
                 });
             } catch (err) {
                 console.error('[GlobalAudioPlayer] stream error:', err);

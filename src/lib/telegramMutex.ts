@@ -5,8 +5,8 @@ const telegramMutex = new Mutex();
 
 export async function withTelegramConnection<T>(
 	client: TelegramClient,
-	operation: (client: TelegramClient) => Promise<T>
-): Promise<T> {
+	operation: (client: TelegramClient) => Promise<T>,
+): Promise<T | undefined> {
 	if (!client) {
 		throw new Error('Telegram client is not initialized');
 	}
@@ -19,6 +19,8 @@ export async function withTelegramConnection<T>(
 	try {
 		const result = await operation(client);
 		return result;
+	} catch (error) {
+		console.error('err', error)
 	} finally {
 		release();
 	}
