@@ -41,7 +41,7 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
             return;
         }
 
-        if(requiresBotToken && !botToken){
+        if (requiresBotToken && !botToken) {
             toast.error('Please enter bot token');
             return;
         }
@@ -78,11 +78,6 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
             const testMessage = await client.sendMessage(entity, {
                 message: `Verification: Switching to ${targetMode} mode...`
             });
-
-            console.log('testMessage', testMessage);
-            console.log('entity', entity);
-            console.log('client', client);
-            console.log('formattedChannelId', channelId);
 
             if (testMessage.id) {
                 void client.deleteMessages(entity, [testMessage.id], { revoke: true }).catch(console.error);

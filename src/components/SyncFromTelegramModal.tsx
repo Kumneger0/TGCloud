@@ -2,10 +2,11 @@
 import { getNewTelegramIds, importSyncedFiles } from '@/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { messageCacheDb } from '@/lib/dexie';
 import { getTgClient } from '@/lib/getTgClient';
 import { withTelegramConnection } from '@/lib/telegramMutex';
-import { FileItem } from '@/lib/types';
+import Message, { FileItem } from '@/lib/types';
 import { cn, downloadMedia, downloadVideoThumbnail, formatBytes, getFilePlaceholder, getMediaCategory, getMessage, MediaCategory } from '@/lib/utils';
 import { useGlobalStore } from '@/store/global-store';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -42,6 +43,7 @@ export function SyncFromTelegramModal({
 	const client = useGlobalStore((s) => s.client);
 	const user = useGlobalStore((s) => s.user);
 	const setBotRateLimit = useGlobalStore((s) => s.setBotRateLimit);
+	const { handleError } = useErrorHandler();
 
 	const [state, setState] = useState({
 		candidates: [] as SyncCandidate[],
@@ -215,9 +217,7 @@ export function SyncFromTelegramModal({
 				setState(prev => ({ ...prev, hasMoreTelegram: false }));
 			}
 		} catch (err) {
-			const message = 'Failed to scan Telegram';
-			console.error('err', err)
-			toast.error(message, { id: toastId });
+			handleError(err, { authType: 'user', onReconnect: () => window.location.reload() });
 		} finally {
 			setState(prev => ({ ...prev, isScanning: false }));
 		}
@@ -504,16 +504,18 @@ export function SyncFromTelegramModal({
 function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 	const client = useGlobalStore((s) => s.client)!;
 	const user = useGlobalStore((s) => s.user);
+	const { handleError } = useErrorHandler()
 
 	const { data: previewUrl, isPending } = useQuery({
 		queryKey: ['sync-preview', c.fileTelegramId],
 		queryFn: async () => {
 			if (!user) return null;
-			if (c.category === 'image') {
-				const result = await withTelegramConnection(client, async (client) => {
-					return await downloadMedia({
-						user,
-						messageId: c.fileTelegramId,
+			try {
+				if (c.category === 'image') {
+					const result = await withTelegramConnection(client, async (client) => {
+						return await downloadMedia({
+							user,
+							messageId: c.fileTelegramId,
 						size: 'small',
 						category: 'image'
 					}, client);
@@ -526,13 +528,18 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 						client,
 						messageId: c.fileTelegramId,
 						user
-					}) as any;
+					}) as Message['media'] | undefined
 				});
 				if (media) {
 					return (await downloadVideoThumbnail(client, media))?.url
 				}
 			}
-			return getFilePlaceholder({ category: c.category, mimeType: c.mimeType });
+				return getFilePlaceholder({ category: c.category, mimeType: c.mimeType })
+			} catch (err) {
+				console.error(err)
+				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				return getFilePlaceholder({ category: c.category, mimeType: c.mimeType })
+			}
 		},
 		enabled: !!client && !!user
 	});
