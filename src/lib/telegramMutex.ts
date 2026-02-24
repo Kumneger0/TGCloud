@@ -20,7 +20,8 @@ export async function withTelegramConnection<T>(
 		const result = await operation(client);
 		return result;
 	} catch (error) {
-		console.error('err', error)
+		console.error('[withTelegramConnection] error:', error);
+		throw error;
 	} finally {
 		release();
 	}

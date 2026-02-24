@@ -22,8 +22,7 @@ import {
 	MediaCategory,
 	MediaSize,
 	QUERY_KEYS,
-	removeCachedFile,
-	telegramErrorMessagesThatNeedReLogin
+	removeCachedFile
 } from '@/lib/utils';
 import fluidPlayer from 'fluid-player';
 import { Loader2, Minimize2, Pause, Play, TrashIcon } from 'lucide-react';
@@ -32,6 +31,8 @@ import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import FileContextMenu from './fileContextMenu';
+import { FileModalView } from './fileModalView';
 import {
 	Music2Icon as AudioIcon,
 	CloudDownload,
@@ -39,8 +40,6 @@ import {
 	Trash2Icon,
 	VideoIcon
 } from './Icons/icons';
-import FileContextMenu from './fileContextMenu';
-import { FileModalView } from './fileModalView';
 import Upload from './uploadWrapper';
 
 import { streamMedia } from '@/lib/video-stream';
@@ -49,8 +48,9 @@ import { useGlobalStore } from '@/store/global-store';
 import { useQuery } from '@tanstack/react-query';
 import React from 'react';
 import { TelegramClient } from 'telegram';
-import { ChannelAccessDeniedModalContent, ConnectionErrorModalContent, ReLoginModalContent } from './fileConnectionErrorModals';
+import { ChannelAccessDeniedModalContent } from './fileConnectionErrorModals';
 import { SyncFromTelegramModal } from './SyncFromTelegramModal';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 function Files({
 	user,
@@ -72,6 +72,7 @@ function Files({
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
 	const setUser = useGlobalStore((s) => s.setUser);
 	const setClient = useGlobalStore((s) => s.setClient);
+	const { handleError } = useErrorHandler();
 
 	const [error, setError] = useState<string | null>(null);
 	const [isPending, setIsPending] = useState(true);
@@ -145,36 +146,14 @@ function Files({
 					setError('Failed to connnect to telegram');
 				}
 			} catch (err) {
-				const message = err instanceof Error ? err.message : 'Failed to connnect to telegram';
-				const needsReLogin = telegramErrorMessagesThatNeedReLogin.some(msg => message.includes(msg));
-				if (needsReLogin) {
-					openModal({
-						forceDialog: true,
-						content: (
-							<ReLoginModalContent
-								isUserLoading={isUserLoading}
-								closeModal={closeModal}
-								onReconnect={async () => {
-									setIsUserLoading(true);
-									await connectTelegramUser();
-								}}
-							/>
-						)
-					});
-					setError("You need to login with this telegram account again.");
-					return;
-				}
-				if (message.includes("MSGID_DECREASE_RETRY")) {
-					openModal({
-						forceDialog: true,
-						content: (
-							<ConnectionErrorModalContent message={message} />
-						)
-					});
-					setError("We encountered an issue while connecting to Telegram servers. Please reload the page.");
-					return;
-				}
-				setError(message);
+				const message = handleError(err, {
+					authType: user.authType,
+					onReconnect: async () => {
+						setIsUserLoading(true);
+						await connectTelegramUser();
+					}
+				})
+				setError(message ?? "Failed to connnect to telegram");
 			} finally {
 				setIsPending(false);
 			}
@@ -547,42 +526,51 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 	} = useQuery({
 		queryKey: ['video', file.id],
 		queryFn: async (): Promise<{ thumbnail?: string; notFound: boolean } | null> => {
-			if (file.category == 'video') {
-				const media = (await getMessage({
-					client,
-					messageId: file.fileTelegramId,	
-					user: user as NonNullable<User>
-				})) as Message['media'] | null | undefined;
+			try {
+				if (file.category == 'video') {
+					const media = (await getMessage({
+						client,
+						messageId: file.fileTelegramId,
+						user: user as NonNullable<User>
+					})) as Message['media'] | null | undefined;
 
-				if (!media) {
-					return { notFound: true };
+					if (!media) {
+						return { notFound: true };
+					}
+
+					const thumbnail = await downloadVideoThumbnail(client, media);
+					return { thumbnail: thumbnail?.url, notFound: false };
 				}
-
-				const thumbnail = await downloadVideoThumbnail(client, media);
-				return { thumbnail: thumbnail?.url, notFound: false };
+				return null;
+			} catch (err) {
+				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				return { notFound: true };
 			}
-			return null;
 		}
 	});
 
 	useEffect(() => {
 		const idleId = requestIdleCallback(async () => {
-			if (file.category == 'image') {
-				const largeURL = await withTelegramConnection(client, async (client) => {
-					const result = await downloadMedia(
-						{
-							user,
-							messageId: file?.fileTelegramId,
-							size: 'large',
-							category: file.category as MediaCategory
-						},
-						client
-					);
-					return { ...result, notFound: result?.notFound ?? false };
-				});
-				setLargeURL(largeURL?.url ?? null);
+			try {
+				if (file.category == 'image') {
+					const largeURL = await withTelegramConnection(client, async (client) => {
+						const result = await downloadMedia(
+							{
+								user,
+								messageId: file?.fileTelegramId,
+								size: 'large',
+								category: file.category as MediaCategory
+							},
+							client
+						);
+						return { ...result, notFound: result?.notFound ?? false };
+					});
+					setLargeURL(largeURL?.url ?? null);
+				}
 			}
-
+			catch (err) {
+				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+			}
 		});
 		return () => cancelIdleCallback(idleId);
 	}, []);
@@ -590,6 +578,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 	const url = file.category === 'video' ? videoData?.thumbnail : largeURL ?? data?.url;
 	const notFound = data?.notFound || videoData?.notFound;
 	const router = useRouter();
+	const { handleError } = useErrorHandler()
 
 	const fileContextMenuActions = [
 		{
@@ -657,7 +646,9 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					loadingMsg: 'please wait',
 					successMsg: 'you have successfully deleted the file',
 					position: 'top-center'
-				}).then(() => router.refresh());
+				}).then(() => router.refresh()).catch((err) => {
+					handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				})
 			},
 			Icon: Trash2Icon,
 			className:
@@ -808,48 +799,51 @@ const VideoMediaView = React.memo(
 		const audioRef = useGlobalStore(s => s.audioRef)
 		const setVideoRef = useGlobalStore(s => s.setVideoRef)
 		const [error, setError] = useState<string | null>(null);
-
+		const { handleError } = useErrorHandler()
 
 		const { data: url } = useQuery({
 			queryKey: [queryKey],
 			queryFn: async () => {
-				const message = await withTelegramConnection(client, async (client) => {
-					const message = await getMessage({
-						client,
-						messageId: fileData.fileTelegramId,
-						user: user as NonNullable<User>
-					});
+				try {
+					const message = await withTelegramConnection(client, async (client) => {
+						const message = await getMessage({
+							client,
+							messageId: fileData.fileTelegramId,
+							user: user as NonNullable<User>
+						});
 
-					if (!message) {
-						throw new Error('Failed to get message');
-					}
-					return message;
-				});
-
-				audioRef?.current?.pause()
-				abortController?.abort();
-				const newAbortController = new AbortController()
-				setAbortController(newAbortController)
-
-				const mediaSource = new MediaSource();
-				const url = URL.createObjectURL(mediaSource);
-
-				withTelegramConnection(client, async (client) => {
-					await streamMedia({
-						client,
-						media: message as Message['media'],
-						mimeType: fileData.mimeType,
-						mediaSource,
-						signal: newAbortController.signal
-					}, (err: unknown) => {
-						if (err instanceof Error) {
-							setError(err.message);
-						} else {
-							setError('Failed to stream media');
+						if (!message) {
+							throw new Error('Failed to get message');
 						}
+						return message;
 					});
-				});
-				return url;
+
+					audioRef?.current?.pause()
+					abortController?.abort();
+					const newAbortController = new AbortController()
+					setAbortController(newAbortController)
+
+					const mediaSource = new MediaSource();
+					const url = URL.createObjectURL(mediaSource);
+
+					withTelegramConnection(client, async (client) => {
+						await streamMedia({
+							client,
+							media: message as Message['media'],
+							mimeType: fileData.mimeType,
+							mediaSource,
+							signal: newAbortController.signal
+						}, (err: unknown) => {
+							const message = err instanceof Error ? err.message : 'Failed to stream media'
+							setError(message);
+						});
+					});
+					return url;
+				} catch (err) {
+					handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+					setError('Failed to stream media');
+					return '';
+				}
 			}
 		});
 
