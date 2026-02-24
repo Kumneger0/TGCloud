@@ -10,16 +10,23 @@ import {
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { auth } from '@/lib/auth';
+import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
 import { ChevronsUpDown, HelpCircle, LogOut } from 'lucide-react';
 import { cookies, headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AddNewBotTokenDialog } from './addNewBotToken';
-import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
+import { ChannelInfo } from './channelInfo';
+import { ModeSwitcher } from './modeSwitcher';
 
 export default async function ProfileMenu() {
 	const user = await getUser();
+	if (!user) {
+		redirect('/login');
+	}
+
 	const cookieStore = await cookies()
+	const tgSession = cookieStore.get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value || null;
 
 	return (
 		<DropdownMenu>
@@ -43,19 +50,64 @@ export default async function ProfileMenu() {
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-56" align="end" forceMount>
 				<DropdownMenuLabel className="font-normal">
-					<div className="flex flex-col space-y-1">
-						<p className="text-sm font-medium leading-none">{user?.name || 'User'}</p>
-						<p className="text-xs leading-none text-muted-foreground">
-							{user?.email || 'user@example.com'}
-						</p>
-						<p className="text-xs leading-none text-muted-foreground mt-1">
-							Plan:{' '}
-							{user?.plan
-								? `${user.plan.charAt(0).toUpperCase()}${user.plan.slice(1).toLowerCase()}`
-								: 'Free Tier'}
-						</p>
+					<div className="flex flex-col space-y-2">
+						<div className="flex flex-col space-y-1">
+							<p className="text-sm font-semibold leading-none text-foreground">
+								{user?.authType === 'bot' ? 'Bot Operation Mode' : (user?.name || 'User')}
+							</p>
+							<p className="text-xs leading-none text-muted-foreground truncate">
+								{user?.email || 'user@example.com'}
+							</p>
+						</div>
+
+						<div className="pt-2 mt-1 border-t border-border/50 space-y-2">
+							<div>
+								<p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight mb-1">
+									Storage Channel
+								</p>
+								<ChannelInfo
+									initialTitle={user?.channelTitle || ''}
+									channelId={user?.channelId || ''}
+									authType={user?.authType as 'bot' | 'user'}
+								/>
+							</div>
+
+							{user?.authType === 'bot' && user.botTokens && user.botTokens.length > 0 && (
+								<div>
+									<p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight mb-1">
+										Connected Bots
+									</p>
+									<p className="text-xs font-medium text-foreground">
+										{user.botTokens.filter(({ token }) => token !== process.env.NEXT_PUBLIC_BOT_TOKEN).length} active {user.botTokens.length === 1 ? 'bot' : 'bots'}
+									</p>
+								</div>
+							)}
+						</div>
+					</div>
+
+				</DropdownMenuLabel>
+				<DropdownMenuSeparator />
+				<DropdownMenuLabel className="pb-1">
+					<div className="flex items-center justify-between">
+						<span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+							Operation Mode
+						</span>
+						<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase ${user?.authType === 'bot' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
+							{user?.authType || 'User'}
+						</span>
 					</div>
 				</DropdownMenuLabel>
+				<DropdownMenuItem
+					className="flex items-center"
+					asChild
+				>
+					<ModeSwitcher
+						authType={user?.authType as 'bot' | 'user'}
+						hasBotTokens={(user?.botTokens?.length ?? 0) > 0}
+						telegramSession={tgSession}
+						user={{ ...user, telegramSession: tgSession ?? undefined }}
+					/>
+				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem asChild>
 					<Link href="/support" className="flex items-center">
@@ -63,10 +115,14 @@ export default async function ProfileMenu() {
 						<span>Support</span>
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem asChild>
-					<AddNewBotTokenDialog />
-				</DropdownMenuItem>
+				{user?.authType === 'bot' && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem asChild>
+							<AddNewBotTokenDialog />
+						</DropdownMenuItem>
+					</>
+				)}
 				<DropdownMenuSeparator />
 				<DropdownMenuItem>
 					<form

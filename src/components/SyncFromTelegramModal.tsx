@@ -53,6 +53,10 @@ export function SyncFromTelegramModal({
 
 	const fetchMore = async (isInitial = false) => {
 		if (!user) throw new Error('Missing user');
+		if (user.authType == "bot") {
+			toast.error('Not supported in bot mode');
+			return
+		}
 		let tgClient = client;
 		if (!tgClient) {
 			const getTgClientArgs: Parameters<typeof getTgClient>[0] = user.authType === 'user' ? {
@@ -211,7 +215,7 @@ export function SyncFromTelegramModal({
 				setState(prev => ({ ...prev, hasMoreTelegram: false }));
 			}
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Failed to scan Telegram';
+			const message = 'Failed to scan Telegram';
 			console.error('err', err)
 			toast.error(message, { id: toastId });
 		} finally {
@@ -281,6 +285,23 @@ export function SyncFromTelegramModal({
 	}
 	const selectNone = () => {
 		setSelected({});
+	}
+
+	if (user?.authType === 'bot') {
+		return (
+			<div className="flex flex-col items-center justify-center h-[75vh] gap-4 p-8 text-center">
+				<div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mb-2">
+					<AlertCircle className="w-8 h-8 text-amber-500" />
+				</div>
+				<h3 className="text-xl font-semibold">Not Supported in Bot Mode</h3>
+				<p className="text-sm text-muted-foreground max-w-md mx-auto">
+					Scanning and syncing files directly from your Telegram channel is only available in User Mode. Please switch to User Mode if you want to use this feature.
+				</p>
+				<Button variant="outline" onClick={onClose} className="mt-4 min-w-32">
+					Close
+				</Button>
+			</div>
+		);
 	}
 
 	return (
@@ -509,7 +530,7 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 				});
 				if (media) {
 					return (await downloadVideoThumbnail(client, media))?.url
-				}	
+				}
 			}
 			return getFilePlaceholder({ category: c.category, mimeType: c.mimeType });
 		},

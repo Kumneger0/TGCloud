@@ -162,6 +162,7 @@ function Files({
 								/>
 							)
 						});
+						setError("We couldn't access your Telegram channel.");
 						return;
 					}
 					setClient(telegramClient);
@@ -178,7 +179,7 @@ function Files({
 						forceDialog: true,
 						content: (
 							<ErrorState
-								title="Telegram Session Duplicated"
+								title="Telegram is forcing us to login again"
 								description="You need to login with this telegram account again."
 								actionButton={{
 									label: isUserLoading ? 'Connecting...' : 'Reconnect Account',
@@ -193,6 +194,27 @@ function Files({
 							/>
 						)
 					});
+					setError("You need to login with this telegram account again.");
+					return;
+				}
+				if (message.includes("MSGID_DECREASE_RETRY")) {
+					openModal({
+						forceDialog: true,
+						content: (
+							<ErrorState
+								title="Telegram Connection Error"
+								description="We encountered an issue while connecting to Telegram servers. This is usually temporary."
+								warning={message}
+								actionButton={{
+									label: 'Reload Page',
+									onClick: async () => {
+										window.location.reload();
+									}
+								}}
+							/>
+						)
+					});
+					setError("We encountered an issue while connecting to Telegram servers. Please reload the page.");
 					return;
 				}
 				setError(message);

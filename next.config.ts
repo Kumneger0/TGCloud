@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 import { NextConfig } from 'next';
 const nextConfig: NextConfig = {
+	cacheComponents: true,
 	turbopack: {
 		resolveAlias: {
 			fs: {
@@ -37,7 +38,8 @@ const nextConfig: NextConfig = {
 		} : false
 	},
 	experimental: {
-		optimizePackageImports: ['telegram', 'posthog-js', '@sentry/nextjs']
+		optimizePackageImports: ['telegram', 'posthog-js', '@sentry/nextjs'],
+		typedEnv: true
 	},
 	webpack: (config, { isServer }) => {
 		if (isServer) {

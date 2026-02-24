@@ -50,6 +50,8 @@ type GlobalStoreType = {
 	setAudioRef: (ref: RefObject<HTMLAudioElement | null>) => void;
 	setVideoRef: (ref: RefObject<HTMLVideoElement | null>) => void;
 	setAbortController: (abortController: AbortController | null) => void;
+	channelTitle: string | null;
+	setChannelTitle: (title: string | null) => void;
 };
 
 export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
@@ -82,4 +84,6 @@ export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
 	setVideoRef: (ref) => set({ videoRef: ref }),
 	abortController: null,
 	setAbortController: (abortController) => set({ abortController }),
+	channelTitle: null,
+	setChannelTitle: (channelTitle) => set({ channelTitle }),
 }));

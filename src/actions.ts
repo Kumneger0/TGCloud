@@ -260,6 +260,29 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 	}
 }
 
+export async function switchOperationMode(newMode: 'user' | 'bot') {
+	try {
+
+		const user = await getUser();
+		if (!user?.id) {
+			throw new Error('User needs to be logged in.');
+		}
+
+		await db.update(usersTable)
+			.set({ authType: newMode })
+			.where(eq(usersTable.id, user.id));
+
+		if (newMode == 'bot') {
+			(await cookies()).delete(USER_TELEGRAM_SESSION_COOKIE_NAME);
+		}
+		revalidatePath('/');
+		return { success: true };
+	} catch (error) {
+		console.error('Error switching operation mode:', error);
+		throw new Error('Failed to switch operation mode.');
+	}
+}
+
 export const saveUserName = async (username: string) => {
 	const user = await getUser();
 	if (!user || !user.id) {
