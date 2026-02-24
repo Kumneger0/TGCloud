@@ -737,6 +737,11 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				)}
 				<span className="sr-only">View file</span>
 				<div className="w-full min-w-full flex-1 aspect-square relative bg-muted rounded-t-lg overflow-hidden">
+					{(isPending || videoIsPending) && (
+						<div className="absolute inset-0 z-20 flex items-center justify-center bg-background/50 backdrop-blur-[2px]">
+							<Loader2 className="h-8 w-8 animate-spin text-primary" />
+						</div>
+					)}
 					{file.category == 'image' ? (
 						<FileModalView
 							key={file.id}
