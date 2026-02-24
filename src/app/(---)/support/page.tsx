@@ -1,11 +1,9 @@
-import { Button } from '@/components/ui/button';
+import { CustomButton } from '@/components/login';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import React from 'react';
 import { env } from '@/env';
-import { Resend } from 'resend';
-import { CustomButton } from '@/components/login';
 import { redirect } from 'next/navigation';
+import { Resend } from 'resend';
 
 async function acceptSupport(user: string, email: string, message: string) {
 	try {
