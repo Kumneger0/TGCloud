@@ -64,8 +64,8 @@
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
 		"react-dropzone": "^14.4.0",
-		"react-hot-toast": "^2.6.0",
 		"resend": "^3.5.0",
+		"sonner": "^2.0.7",
 		"sweetalert2": "^11.26.18",
 		"tailwind-merge": "^2.6.1",
 		"tailwindcss-animate": "^1.0.7",
@@ -90,10 +90,15 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@sentry/cli",
+			"bufferutil",
 			"core-js",
+			"es5-ext",
 			"esbuild",
+			"protobufjs",
 			"sharp",
-			"unrs-resolver"
+			"unrs-resolver",
+			"utf-8-validate"
 		]
 	}
 }

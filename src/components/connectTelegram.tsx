@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 import { Api } from 'telegram';
 import { EntityLike } from 'telegram/define';
@@ -22,6 +21,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { toast } from 'sonner';
 
 interface Result {
 	chats?: {

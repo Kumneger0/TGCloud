@@ -1,11 +1,11 @@
 'use client';
-import posthog from 'posthog-js';
-import { PostHogProvider } from 'posthog-js/react';
-import React, { Dispatch, SetStateAction, useMemo, useState, useTransition } from 'react';
-import { env } from '../env';
-import { FileItem } from './types';
 import { ProgressProvider } from '@bprogress/next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import posthog from 'posthog-js';
+import { PostHogProvider } from 'posthog-js/react';
+import React from 'react';
+import { env } from '../env';
+import { FileItem } from './types';
 
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {

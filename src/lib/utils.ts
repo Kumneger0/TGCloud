@@ -4,15 +4,14 @@ import Message, { FileItem, MessageMediaPhoto } from '@/lib/types';
 import { UploadProgress } from '@/store/global-store';
 import { type ClassValue, clsx } from 'clsx';
 import { ReadonlyURLSearchParams } from 'next/navigation';
-import toast from 'react-hot-toast';
 import { twMerge } from 'tailwind-merge';
 import { Api, TelegramClient } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
 import { TELEGRAM_ERRORS } from './consts';
-import { errorToast } from './notify';
 import { getCode, getPassword, getPhoneNumber } from './telegramAuthHelpers';
 import { ChannelDetails, User } from './types';
+import { toast } from 'sonner';
 
 export type MediaSize = 'large' | 'small';
 export type MediaCategory = 'video' | 'image' | 'document' | 'audio';
@@ -250,7 +249,7 @@ export async function loginInTelegram(clientInstance: TelegramClient | undefined
 			phoneCode: async () => await getCode(),
 			onError: (err) => {
 				console.error('Telegram login error:', err)
-				errorToast(err?.message)
+				toast.error(err?.message)
 				if (errCount >= 3) {
 					throw err
 				}
@@ -264,7 +263,7 @@ export async function loginInTelegram(clientInstance: TelegramClient | undefined
 		console.error('Error in loginInTelegram:', err);
 		if (err && typeof err == 'object' && 'message' in err) {
 			const message = (err?.message as string) ?? 'There was an error';
-			errorToast(message);
+			toast.error(message);
 		}
 		return undefined;
 	}

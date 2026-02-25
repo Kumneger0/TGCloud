@@ -6,7 +6,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { fileCacheDb } from '@/lib/dexie';
 import { getTgClient } from '@/lib/getTgClient';
-import { promiseToast } from '@/lib/notify';
 import { withTelegramConnection } from '@/lib/telegramMutex';
 import Message, { FileItem, FilesData, GetAllFilesReturnType, User } from '@/lib/types';
 import {
@@ -30,7 +29,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import toast from 'react-hot-toast';
 import FileContextMenu from './fileContextMenu';
 import { FileModalView } from './fileModalView';
 import {
@@ -51,6 +49,7 @@ import { TelegramClient } from 'telegram';
 import { ChannelAccessDeniedModalContent } from './fileConnectionErrorModals';
 import { SyncFromTelegramModal } from './SyncFromTelegramModal';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { toast } from 'sonner';
 
 function Files({
 	user,
@@ -636,20 +635,17 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					console.error(err);
 				}
 
-				const promies = () =>
-					withTelegramConnection(client, async (client) => {
+				const promies = async () =>
+					await withTelegramConnection(client, async (client) => {
 						await Promise.all([deleteFile(file.id), deleteItem(user, file.fileTelegramId, client)]);
-					});
+					})
 
-				promiseToast({
-					cb: promies,
-					errMsg: 'Failed to Delete the file',
-					loadingMsg: 'please wait',
-					successMsg: 'you have successfully deleted the file',
-					position: 'top-center'
-				}).then(() => router.refresh()).catch((err) => {
-					handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				toast.promise(promies, {
+					loading: 'please wait',
+					success: 'you have successfully deleted the file',
+					error: 'Failed to Delete the file'
 				})
+
 			},
 			Icon: Trash2Icon,
 			className:
