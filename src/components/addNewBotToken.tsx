@@ -5,9 +5,9 @@ import { getTgClient } from '@/lib/getTgClient';
 import { useGlobalStore } from '@/store/global-store';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import toast from 'react-hot-toast';
 import { EntityLike } from 'telegram/define';
 import { Dialog, DialogContent, DialogHeader, DialogTrigger } from './ui/dialog';
+import { toast } from 'sonner';
 
 export function AddNewBotTokenDialog() {
 	const [isOpen, setIsOpen] = useState(false);

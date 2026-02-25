@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { promiseToast } from '@/lib/notify';
 import { User } from '@/lib/types';
 import { formatBytes, uploadFiles } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
@@ -9,6 +8,7 @@ import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import Dropzone from 'react-dropzone';
 import { CloudUploadIcon, FileIcon, TrashIcon, UploadIcon, XIcon } from './Icons/icons';
+import { toast } from 'sonner';
 
 interface DropedFile {
 	file: File;
@@ -42,19 +42,20 @@ export const UploadFiles = ({
 
 		if (!client) return null;
 
-		await promiseToast({
-			cb: () => {
-				closeModal();
-				return uploadFiles(formData, user, setUploadProgress, client, folderId);
-			},
-			errMsg: 'We apologize, but there was an error uploading your files',
-			successMsg: 'File Uploaded',
-			loadingMsg: 'please wait',
-			position: 'top-right'
-		});
-		setUploadProgress(undefined);
-		setFiles([]);
-		router.refresh();
+		toast.promise(() => {
+			closeModal();
+			return uploadFiles(formData, user, setUploadProgress, client, folderId);
+		}, {
+			loading: 'please wait',
+			error: 'We apologize, but there was an error uploading your files',
+			success: 'File Uploaded',
+			position: 'top-right',
+			finally: () => {
+				setUploadProgress(undefined);
+				setFiles([]);
+				router.refresh();
+			}
+		})
 	};
 
 	if (botRateLimit.isRateLimited) return null;
@@ -87,9 +88,8 @@ export const UploadFiles = ({
 						}) => (
 							<div
 								{...getRootProps()}
-								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${
-									isDragActive ? 'border-primary' : 'border-primary-foreground'
-								}`}
+								className={`flex flex-col items-center justify-center gap-4 px-6 py-12 border-2 border-dashed rounded-lg transition-colors w-full ${isDragActive ? 'border-primary' : 'border-primary-foreground'
+									}`}
 							>
 								<CloudUploadIcon className="w-10 h-10 text-primary" />
 								<h3 className="text-2xl font-bold">Upload Files</h3>

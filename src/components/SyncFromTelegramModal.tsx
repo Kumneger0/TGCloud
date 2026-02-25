@@ -12,7 +12,7 @@ import { useGlobalStore } from '@/store/global-store';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 import { Api } from 'telegram';
 
 export type SyncCandidate = {

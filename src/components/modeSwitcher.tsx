@@ -14,9 +14,9 @@ import { loginInTelegram } from '@/lib/utils';
 import { useGlobalStore } from '@/store/global-store';
 import { Bot, Loader2, User as UserIcon } from 'lucide-react';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { toast } from 'sonner';
 
 interface ModeSwitcherProps {
     authType: 'bot' | 'user';

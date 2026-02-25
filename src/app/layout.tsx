@@ -2,13 +2,12 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../../patch-global-alert-polyfill';
 import './globals.css';
-
+import { Toaster } from "@/components/ui/sonner"
 import GlobalAudioPlayer from '@/components/GlobalAudioPlayer';
 import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
 import Providers, { CSPostHogProvider } from '@/lib/context';
-import { Toaster } from 'react-hot-toast';
 import { GlobalModal } from '@/components/GlobalModal';
 const inter = Inter({ subsets: ['latin'] });
 
