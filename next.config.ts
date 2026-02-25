@@ -2,7 +2,6 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 import { NextConfig } from 'next';
 const nextConfig: NextConfig = {
-	cacheComponents: true,
 	turbopack: {
 		resolveAlias: {
 			fs: {
