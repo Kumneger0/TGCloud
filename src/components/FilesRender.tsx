@@ -801,6 +801,7 @@ const VideoMediaView = React.memo(
 
 		const { data } = useQuery<{ url?: string }>({
 			queryKey: [queryKey],
+			staleTime: 0,
 			queryFn: async () => {
 				try {
 					const message = await withTelegramConnection(client, async (client) => {

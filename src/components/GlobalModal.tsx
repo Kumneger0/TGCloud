@@ -19,9 +19,11 @@ export const GlobalModal = () => {
     const isLarge = size === 'lg'
 
 
+    const modalContenetKey = title + (isOpen ? "open" : "closed")
+
     if (isDesktop || forceDialog) {
         return (
-            <Dialog open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+            <Dialog key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal()}>
                 <DialogContent className={cn(
                     "max-h-[90dvh] overflow-y-auto w-full",
                     sizeClasses[size || 'sm'],
@@ -37,7 +39,7 @@ export const GlobalModal = () => {
     }
 
     return (
-        <Drawer open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+        <Drawer key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal()}>
             <DrawerContent className={cn(
                 isLarge ? "h-[90dvh]" : "max-h-[90dvh]",
                 className
