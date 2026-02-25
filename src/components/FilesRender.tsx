@@ -499,7 +499,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 	const client = useGlobalStore((s) => s.client)!;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
 	const { openModal, closeModal } = useGlobalModal();
-	const { data, isPending, error } = useQuery({
+	const { data, isPending, error } = useQuery<{ notFound?: boolean; url?: string }>({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
 			if (file.category === 'image') {
@@ -513,9 +513,10 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 						},
 						client
 					);
-					return { ...result, notFound: result?.notFound ?? false };
+					return { url: result?.url, notFound: result?.notFound ?? false };
 				});
 			}
+			return { notFound: false, url: undefined };
 		}
 	});
 
@@ -523,9 +524,9 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		data: videoData,
 		isPending: videoIsPending,
 		error: videoError
-	} = useQuery({
+	} = useQuery<{ thumbnail?: string; notFound?: boolean }>({
 		queryKey: ['video', file.id],
-		queryFn: async (): Promise<{ thumbnail?: string; notFound: boolean } | null> => {
+		queryFn: async () => {
 			try {
 				if (file.category == 'video') {
 					const media = (await getMessage({
@@ -541,10 +542,10 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					const thumbnail = await downloadVideoThumbnail(client, media);
 					return { thumbnail: thumbnail?.url, notFound: false };
 				}
-				return null;
+				return { thumbnail: undefined };
 			} catch (err) {
 				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
-				return { notFound: true };
+				return { thumbnail: undefined };
 			}
 		}
 	});
@@ -769,6 +770,7 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 			<Image
 				src={url ?? '/placeholder.svg'}
 				alt={fileName}
+				sizes="(min-width: 1024px) 50vw, (min-width: 768px) 33vw, 100vw"
 				fill
 				style={{
 					objectFit: 'cover',
@@ -801,7 +803,7 @@ const VideoMediaView = React.memo(
 		const [error, setError] = useState<string | null>(null);
 		const { handleError } = useErrorHandler()
 
-		const { data: url } = useQuery({
+		const { data } = useQuery<{ url?: string }>({
 			queryKey: [queryKey],
 			queryFn: async () => {
 				try {
@@ -838,11 +840,11 @@ const VideoMediaView = React.memo(
 							setError(message);
 						});
 					});
-					return url;
+					return { url };
 				} catch (err) {
 					handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
 					setError('Failed to stream media');
-					return '';
+					return { url: undefined }
 				}
 			}
 		});
@@ -881,23 +883,26 @@ const VideoMediaView = React.memo(
 			<div className="flex flex-col h-full">
 				<div className="flex-1 overflow-y-auto">
 					<div className="relative aspect-video">
-						{error && (
-							<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
-								<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
-									<circle cx="12" cy="12" r="10" />
-									<line x1="12" x2="12" y1="8" y2="12" />
-									<line x1="12" x2="12.01" y1="16" y2="16" />
-								</svg>
-								<p className="text-lg font-semibold text-white">Playback failed</p>
-								<p className="text-sm text-white/70 max-w-xs">Something went wrong while loading the video. This can happen due to a network issue or an unsupported format.</p>
-							</div>
-						)}
+						<div>
+							{error && (
+								<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
+									<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+										<circle cx="12" cy="12" r="10" />
+										<line x1="12" x2="12" y1="8" y2="12" />
+										<line x1="12" x2="12.01" y1="16" y2="16" />
+									</svg>
+									<p className="text-lg font-semibold text-white">Playback failed</p>
+									<p className="text-sm text-white/70 max-w-xs">Something went wrong while loading the video. This can happen due to a network issue or an unsupported format.</p>
+								</div>
+							)}
+						</div>
+
 						<video
 							ref={self}
 							controls
 							autoPlay
 							className="w-full h-full object-contain"
-							src={url}
+							src={data?.url}
 						></video>
 					</div>
 					<div className="p-6 bg-background">

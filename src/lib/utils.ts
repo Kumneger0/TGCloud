@@ -234,14 +234,8 @@ export const canWeAccessTheChannel = async (client: TelegramClient, user: User) 
 	const channelId = user?.channelId?.startsWith('-100')
 		? user?.channelId
 		: `-100${user?.channelId}`;
-	try {
 		const entity = await client.getInputEntity(channelId as EntityLike);
-		return !!entity;
-	} catch (err) {
-		if (err instanceof RPCError) {
-			if (err.errorMessage == 'CHANNEL_INVALID') return false;
-		}
-	}
+	return !!entity;
 };
 
 

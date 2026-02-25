@@ -35,7 +35,7 @@ export const usersTable = pgTable(
 		createdAt: timestamp('createdAt', { mode: 'string' }).$defaultFn(() =>
 			new Date().toDateString()
 		),
-		authType: authTypeEnum('authType').notNull().default('user'),
+		authType: authTypeEnum('authType').notNull().default('bot'),
 		updatedAt: timestamp('updatedAt', { mode: 'string' }).$defaultFn(() =>
 			new Date().toDateString()
 		)

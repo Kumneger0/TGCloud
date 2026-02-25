@@ -38,15 +38,20 @@ export const streamMedia = async (
 	{ client, media, mimeType, mediaSource, signal, }: StreamMediaArgs,
 	onError: (error: unknown) => void
 ) => {
-	if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
-		return streamDirectAudio(client, media, mimeType, mediaSource, signal, onError);
-	}
+	try {
+		if (mimeType.startsWith('audio/') && !mimeType.includes('mp4') && !mimeType.includes('m4a')) {
+			return streamDirectAudio(client, media, mimeType, mediaSource, signal, onError);
+		}
 
-	if (mimeType === 'video/webm') {
+		if (mimeType === 'video/webm') {
 		return streamWebM(client, media, mediaSource, mimeType, signal, onError);
 	}
 
 	return streamMP4(client, media, mediaSource, signal, onError);
+	} catch (err) {
+		onError(err)
+		console.error('err', err)
+	}
 };
 
 const streamWebM = async (
@@ -290,7 +295,7 @@ const streamMP4 = async (
 			reject(new DOMException("Aborted", "AbortError"));
 		});
 
-		mp4boxfile.onError = (e: any) => {
+		mp4boxfile.onError = (e) => {
 			console.error("MP4Box error:", e);
 			safeEndStream("decode");
 			onError(e);
