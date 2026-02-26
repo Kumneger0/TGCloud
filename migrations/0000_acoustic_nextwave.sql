@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS "account" (
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "botTokens" (
 	"id" text PRIMARY KEY NOT NULL,
-	"token" text DEFAULT '8079529691:AAFMc_1wEi_UrAPiOjYhv3OJjnVtH-0sm84' NOT NULL,
+	"token" text NOT NULL,
 	"userId" text NOT NULL,
 	"rateLimitedUntil" timestamp,
 	"createdAt" timestamp,
