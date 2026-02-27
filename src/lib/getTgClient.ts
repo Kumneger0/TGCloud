@@ -15,10 +15,12 @@ type GetTgClientBotTypeArgs = {
 	authType: 'bot';
 	botToken?: string;
 	setBotRateLimit: (botRateLimit: { isRateLimited: boolean; retryAfter: number }) => void;
+	shouldFilterDefaultBotToken?: boolean;
 };
 
 const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
-	user: Awaited<ReturnType<typeof getUser>>
+	user: Awaited<ReturnType<typeof getUser>>,
+	shouldFilterDefaultBotToken: boolean
 ) => {
 	const allTokens = user?.botTokens ?? [];
 
@@ -33,7 +35,7 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 			token: string;
 			id: string;
 		}[]
-	).sort((a, b) => {
+	).filter(({ token }) => shouldFilterDefaultBotToken ? token !== env.NEXT_PUBLIC_BOT_TOKEN : true).sort((a, b) => {
 		const remainingA = a.rateLimitedUntil?.getTime() / 1000 - now;
 		const remainingB = b.rateLimitedUntil?.getTime() / 1000 - now;
 		return remainingA - remainingB;
@@ -42,6 +44,7 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 	return tokenWithLeastAmountOfRemainingRateLimit?.token;
 };
 
+
 export async function getTgClient(options: GetTgClientOptions) {
 	if (typeof window === 'undefined') return;
 	const user = await getUser();
@@ -49,7 +52,6 @@ export async function getTgClient(options: GetTgClientOptions) {
 		console.error('error', "user is not logged in ")
 		return
 	}
-	const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user);
 
 	try {
 		localStorage.removeItem('GramJs:apiCache');
@@ -64,11 +66,16 @@ export async function getTgClient(options: GetTgClientOptions) {
 			return client;
 		}
 
+		const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user, !!options.shouldFilterDefaultBotToken);
 		const token = options.botToken ?? userBotToken ?? env.NEXT_PUBLIC_BOT_TOKEN;
+
 		try {
-			await client.start({
-				botAuthToken: token
-			});
+			await Promise.race([
+				client.start({
+					botAuthToken: token
+				}),
+				new Promise((resolve, reject) => setTimeout(() => reject(new Error('connection timeout')), 15000))
+			]);
 		} catch (startError: unknown) {
 			console.error('startError', startError);
 			const error = startError as { message?: string };
@@ -86,10 +93,6 @@ export async function getTgClient(options: GetTgClientOptions) {
 					if (tokenId) {
 						await updateTokenRateLimit(tokenId, timeInMilliseconds);
 					}
-					await new Promise((resolve) => setTimeout(resolve, timeInMilliseconds));
-					await client.start({
-						botAuthToken: token
-					});
 				}
 			} else {
 				throw startError;

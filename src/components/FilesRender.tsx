@@ -74,10 +74,11 @@ function Files({
 	const { handleError } = useErrorHandler();
 
 	const [error, setError] = useState<string | null>(null);
-	const [isPending, setIsPending] = useState(true);
+	const [isPending, setIsPending] = useState(false);
 	const client = useGlobalStore((s) => s.client);
 	const { closeModal, openModal } = useGlobalModal();
 	const router = useRouter();
+	const setUserTgInfo = useGlobalStore((s) => s.setUserTgInfo);
 
 	const openSyncModal = () => {
 		openModal({
@@ -114,11 +115,12 @@ function Files({
 
 			try {
 				const telegramClient = await getTgClient(getTgClientArgs);
+				console.log('client', telegramClient)
 
 				if (telegramClient) {
 					if (!telegramClient?.connected) await telegramClient.connect();
 					const whoAmI = await telegramClient.getMe();
-					console.log(whoAmI);
+					setUserTgInfo(whoAmI);
 
 					const canWeAccess = await withTelegramConnection(telegramClient, (client) =>
 						canWeAccessTheChannel(client, user)
@@ -240,7 +242,7 @@ function Files({
 		}
 	}
 
-	if (isSwitchingFolder || isPending) {
+	if (isSwitchingFolder || ((user.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user.authType == "user" && isPending))) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -248,7 +250,7 @@ function Files({
 		);
 	}
 
-	if (error || !client) {
+	if (error || ((user.authType == "bot" && !botRateLimit.isRateLimited && !client) || (user.authType == "user" && !client))) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
