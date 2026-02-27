@@ -6,14 +6,16 @@ import { useGlobalStore } from '@/store/global-store';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { EntityLike } from 'telegram/define';
-import { Dialog, DialogContent, DialogHeader, DialogTrigger } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { toast } from 'sonner';
+import { Input } from './ui/input';
 
 export function AddNewBotTokenDialog() {
 	const [isOpen, setIsOpen] = useState(false);
 	const [botToken, setBotToken] = useState('');
 	const [error, setError] = useState('');
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
+	const user = useGlobalStore(s => s.user)
 
 	return (
 		<>
@@ -25,10 +27,10 @@ export function AddNewBotTokenDialog() {
 				</DialogTrigger>
 				<DialogContent className="space-y-6">
 					<DialogHeader>
-						<h2 className="text-lg font-medium">Add a new Telegram bot token</h2>
+						<DialogTitle className="text-lg font-medium">Add a new Telegram bot token</DialogTitle>
 					</DialogHeader>
 					<div className="space-y-1">
-						<input
+						<Input
 							type="text"
 							placeholder="1234567890:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 							className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
@@ -43,9 +45,12 @@ export function AddNewBotTokenDialog() {
 						</Button>
 						<form
 							action={async () => {
-								try {
-									const user = await getUser();
-									if (!user || !user.id) return;
+								try {	
+									console.log('user', user)
+									if (!user || !user.id) {
+										toast.error('Something went wrong, please try again later');
+										return;
+									};
 									const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
 										authType: 'bot',
 										botToken,
@@ -56,12 +61,14 @@ export function AddNewBotTokenDialog() {
 										toast.error('Invalid bot token');
 										return;
 									}
-									const entity = await client.getInputEntity(
-										`-100${user?.channelId}` as EntityLike
-									);
+									if (client.connected) await client.connect()
+									const channelId = user?.channelId!.startsWith('-100')
+										? user?.channelId!
+										: `-100${user?.channelId!}`;
 
+									const entity = await client.getInputEntity(channelId);
 									const testMessage = await client?.sendMessage(
-										`-100${user.channelId}` as EntityLike,
+										entity,
 										{
 											message: 'You are successfully added new bot token'
 										}

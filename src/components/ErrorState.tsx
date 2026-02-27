@@ -21,6 +21,7 @@ interface ErrorStateProps {
 		variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
 		className?: string;
 	};
+	children?: ReactNode;
 }
 
 export function ErrorState({
@@ -29,7 +30,8 @@ export function ErrorState({
 	icon,
 	warning,
 	actionButton,
-	secondaryAction
+	secondaryAction,
+	children
 }: ErrorStateProps) {
 	const [loading, setLoading] = useState(false);
 	return (
@@ -43,6 +45,8 @@ export function ErrorState({
 					<p className="text-sm text-muted-foreground max-w-sm mx-auto">{description}</p>
 				</div>
 			</div>
+
+			{children}
 
 			{warning && (
 				<div className="rounded-lg bg-destructive/5 border border-destructive/20 p-4 space-y-2">

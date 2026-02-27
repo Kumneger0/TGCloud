@@ -7,6 +7,7 @@ import {
     AlertDialogContent,
     AlertDialogFooter,
     AlertDialogHeader,
+    AlertDialogTitle,
     AlertDialogTrigger
 } from '@/components/ui/alert-dialog';
 import { getTgClient } from '@/lib/getTgClient';
@@ -54,7 +55,8 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
                     : {
                         authType: 'bot',
                         botToken: !hasBotTokens ? botToken : undefined,
-                        setBotRateLimit
+                        setBotRateLimit,
+                        shouldFilterDefaultBotToken: !hasBotTokens
                     }
             );
 
@@ -143,6 +145,7 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
             </AlertDialogTrigger>
 
             <AlertDialogContent className="sm:max-w-md rounded-2xl">
+                <AlertDialogTitle className='sr-only'>Switch to {targetMode === 'bot' ? 'Bot' : 'User'} Mode</AlertDialogTitle>
                 <AlertDialogHeader className="space-y-4">
 
                     <div className="flex items-center gap-3 p-4 rounded-xl bg-muted">

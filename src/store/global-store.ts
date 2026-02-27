@@ -1,6 +1,6 @@
 import { FileItem, User } from '@/lib/types';
 import { RefObject } from 'react';
-import { TelegramClient } from 'telegram';
+import { Api, TelegramClient } from 'telegram';
 import { create } from 'zustand';
 
 export interface UploadProgress {
@@ -24,7 +24,9 @@ export interface AudioPlayerState {
 
 type GlobalStoreType = {
 	user: User & { telegramSession?: string } | null;
+	userTgInfo: Api.User | null;
 	setUser: (user: User & { telegramSession?: string }) => void;
+	setUserTgInfo: (userTgInfo: Api.User) => void;
 	sortBy: SortBy;
 	setSortBy: (sortBy: SortBy) => void;
 	client: TelegramClient | null;
@@ -56,7 +58,9 @@ type GlobalStoreType = {
 
 export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
 	user: null,
+	userTgInfo: null,
 	setUser: (user: User & { telegramSession?: string }) => set({ user }),
+	setUserTgInfo: (userTgInfo: Api.User) => set({ userTgInfo }),
 	client: null,
 	setClient: (client: TelegramClient | null) => set({ client }),
 	sortBy: 'name',

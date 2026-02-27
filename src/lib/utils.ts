@@ -230,11 +230,15 @@ export function isDarkMode() {
 }
 
 export const canWeAccessTheChannel = async (client: TelegramClient, user: User) => {
-	const channelId = user?.channelId?.startsWith('-100')
-		? user?.channelId
-		: `-100${user?.channelId}`;
+	try {
+		const channelId = user?.channelId?.startsWith('-100')
+			? user?.channelId
+			: `-100${user?.channelId}`;
 		const entity = await client.getInputEntity(channelId as EntityLike);
-	return !!entity;
+		return !!entity;
+	} catch (err) {
+		throw Error("CHANNEL_INVALID")
+	}
 };
 
 
