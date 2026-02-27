@@ -474,7 +474,7 @@ export default function Component({ user }: Props) {
 								</AlertTitle>
 								<AlertDescription className="text-blue-800 dark:text-blue-300/90">
 									You can only use one connection method at a time. If you connect via User Account,
-									you don&apos;t need to use the Bot connection, and vice versa.
+									you don&apos;t need to use the Bot connection, and vice versa. However, you can easily switch between User mode and Bot mode at any time later if you want.
 								</AlertDescription>
 							</Alert>
 
