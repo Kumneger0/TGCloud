@@ -71,9 +71,9 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
                     return;
                 }
             }
-            const channelId = user?.channelId!.startsWith('-100')
-                ? user?.channelId!
-                : `-100${user?.channelId!}`;
+            const channelId = user.channelId.startsWith('-100')
+                ? user.channelId
+                : `-100${user.channelId}`;
             if (!client.connected) await client.connect()
             const entity = await client.getInputEntity(channelId);
 
