@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 import { NextConfig } from 'next';
 const nextConfig: NextConfig = {
+	productionBrowserSourceMaps: true,
 	turbopack: {
 		resolveAlias: {
 			fs: {
