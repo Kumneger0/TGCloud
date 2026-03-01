@@ -581,7 +581,10 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 	});
 
 	useEffect(() => {
-		const idleId = requestIdleCallback(async () => {
+		const runIdle = window.requestIdleCallback ?? ((cb) => setTimeout(cb, 0));
+		const cancelIdle = window.cancelIdleCallback ?? ((id) => clearTimeout(id));
+
+		const idleId = runIdle(async () => {
 			try {
 				if (file.category == 'image') {
 					const largeURL = await withTelegramConnection(client, async (client) => {
@@ -603,7 +606,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				handleError(err, { onReconnect: () => window.location.reload() })
 			}
 		});
-		return () => cancelIdleCallback(idleId);
+		return () => cancelIdle(idleId);
 	}, []);
 
 	const url = file.category === 'video' ? videoData?.thumbnail : largeURL ?? data?.url;
