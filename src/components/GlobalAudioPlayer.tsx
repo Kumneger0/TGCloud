@@ -82,7 +82,7 @@ export default function GlobalAudioPlayer() {
                 void streamMedia({
                     client: client,
                     media: message as Message['media'],
-                    mimeType: audioPlayer!.fileData.mimeType,
+                    mimeType: audioPlayer?.fileData?.mimeType || '',
                     mediaSource,
                     signal: newAbortController.signal
                 }, (err) => {

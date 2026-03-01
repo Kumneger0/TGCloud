@@ -282,7 +282,7 @@ export const getMessage = async ({
 	client,
 	user
 }: Pick<DownloadMediaOptions, 'messageId' | 'user'> & {
-	client: TelegramClient;
+		client: TelegramClient
 }) => {
 	if (!client.connected) await client.connect();
 

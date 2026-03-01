@@ -36,6 +36,11 @@ export async function Dashboard({
 	const foldersHierarchy = await getFolderHierarchy(user?.id as string);
 	const allFolders = await allfolders(user?.id as string);
 
+
+	const telegramChannelLink = user?.hasPublicTgChannel
+		? `https://t.me/${user?.channelUsername || ''}`
+		: `https://t.me/c/${user?.channelId?.replace('-100', '')}/1`
+
 	return (
 		<>
 			<UploadProgressOverlay />
@@ -98,11 +103,7 @@ export async function Dashboard({
 										<Button size="sm" className="w-full">
 											<Link
 												target="_blank"
-												href={
-													user?.hasPublicTgChannel
-														? 'https://t.me/' + user?.channelUsername!
-														: `https://t.me/c/${user?.channelId}/1`
-												}
+												href={telegramChannelLink}
 												className="text-muted-foreground font-bold no-underline"
 											>
 												View in Telegram
@@ -183,11 +184,7 @@ export async function Dashboard({
 											<Button size="sm" className="w-full">
 												<Link
 													target="_blank"
-													href={
-														user?.hasPublicTgChannel
-															? 'https://t.me/' + user?.channelUsername!
-															: `https://t.me/c/${user?.channelId}/1`
-													}
+													href={telegramChannelLink}
 													className="text-muted-foreground font-bold no-underline"
 												>
 													View in Telegram

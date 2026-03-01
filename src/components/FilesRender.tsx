@@ -513,12 +513,14 @@ function DeleteAllFiles({
 export default Files;
 
 const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
-	const client = useGlobalStore((s) => s.client)!;
+	const client = useGlobalStore((s) => s.client);
+	if (!user) return null;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
 	const { openModal, closeModal } = useGlobalModal();
 	const { data, isPending, error } = useQuery<{ notFound?: boolean; url?: string }>({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
+			if (!client) return { notFound: false, url: undefined };
 			if (file.category === 'image') {
 				return await withTelegramConnection(client, async (client) => {
 					const result = await downloadMedia(
@@ -545,6 +547,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		queryKey: ['video', file.id],
 		queryFn: async () => {
 			try {
+				if (!client) return { notFound: false, thumbnail: undefined };
 				if (file.category == 'video') {
 					const media = (await getMessage({
 						client,
@@ -573,6 +576,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 
 		const idleId = runIdle(async () => {
 			try {
+				if (!client) return;
 				if (file.category == 'image') {
 					const largeURL = await withTelegramConnection(client, async (client) => {
 						const result = await downloadMedia(
@@ -598,7 +602,6 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 
 	const url = file.category === 'video' ? videoData?.thumbnail : largeURL ?? data?.url;
 	const notFound = data?.notFound || videoData?.notFound;
-	const router = useRouter();
 	const { handleError } = useErrorHandler()
 
 	const fileContextMenuActions = [
@@ -644,6 +647,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		{
 			actionName: 'delete',
 			onClick: async () => {
+				if (!client) return;
 				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${'small' satisfies MediaSize
 					}-${file.category}`;
 				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${'large' satisfies MediaSize
@@ -714,7 +718,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							id={file.id}
 							queryKey={QUERY_KEYS.image(file.id)}
 							modalContent={
-								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url!} />
+								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url || getFilePlaceholder(file) || ''} />
 							}
 						>
 							<ImageRender fileName={file.fileName} url={url || getFilePlaceholder(file)} />
@@ -732,7 +736,6 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 								<VideoMediaView
 									queryKey={QUERY_KEYS.video(file.id)}
 									fileData={{ ...file, category: 'video' }}
-									client={client}
 									user={user}
 								/>
 							}
@@ -753,8 +756,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							modalContent={
 								<AudioMediaView
 									fileData={{ ...file, category: 'audio' }}
-									client={client}
-									user={user!}
+									user={user}
 								/>
 							}
 						>
@@ -802,12 +804,10 @@ function ImageRender({ url, fileName }: { url: string; fileName: string }) {
 const VideoMediaView = React.memo(
 	({
 		fileData,
-		client,
 		user,
 		queryKey
 	}: {
-		fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
-		client: TelegramClient;
+			fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
 		queryKey: string;
 		user: User;
 	}) => {
@@ -819,12 +819,14 @@ const VideoMediaView = React.memo(
 		const setVideoRef = useGlobalStore(s => s.setVideoRef)
 		const [error, setError] = useState<string | null>(null);
 		const { handleError } = useErrorHandler()
+		const client = useGlobalStore(s => s.client)
 
 		const { data } = useQuery<{ url?: string }>({
 			queryKey: [queryKey],
 			staleTime: 0,
 			queryFn: async () => {
 				try {
+					if (!client) return { url: undefined };
 					const message = await withTelegramConnection(client, async (client) => {
 						const message = await getMessage({
 							client,
@@ -868,9 +870,9 @@ const VideoMediaView = React.memo(
 		});
 
 		useEffect(() => {
-			if (!playerRef.current) {
+			if (!playerRef.current && self.current) {
 				setVideoRef(self)
-				playerRef.current = fluidPlayer(self.current!, {
+				playerRef.current = fluidPlayer(self.current, {
 					layoutControls: {
 						allowDownload: false,
 						controlForwardBackward: {
@@ -1002,8 +1004,7 @@ function ImagePreviewModal({
 function AudioMediaView({
 	fileData
 }: {
-	fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
-		client: TelegramClient;
+		fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
 	user: NonNullable<User>;
 }) {
 	const audioPlayer = useGlobalStore((s) => s.audioPlayer);

@@ -9,8 +9,8 @@ async function acceptSupport(user: string, email: string, message: string) {
 	try {
 		const resend = new Resend(env.RESEND_API_KEY);
 		await resend.emails.send({
-			from: env.supportMail!,
-			to: env.supportRecipients!,
+			from: env.supportMail,
+			to: env.supportRecipients,
 			subject: 'new Support Request',
 			text: `
 			Name: ${user}

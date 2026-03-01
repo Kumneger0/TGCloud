@@ -47,7 +47,8 @@ export async function getFolderHierarchy(userId: string): Promise<FolderHierarch
 	const rootFolders: FolderHierarchy[] = [];
 
 	allFolders.forEach((folder) => {
-		const folderWithChildren = folderMap.get(folder.id)!;
+		const folderWithChildren = folderMap.get(folder.id);
+		if (!folderWithChildren) return;
 
 		if (!folder.parentId) {
 			rootFolders.push(folderWithChildren);

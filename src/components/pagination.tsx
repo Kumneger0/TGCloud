@@ -50,7 +50,7 @@ function Paginate({ totalItems }: { totalItems: number }) {
 	const router = useRouter();
 
 	const getURL = (page: number | string) => {
-		if (page === '...') return;
+		if (page === '...') return '#';
 		return pathname + '?' + createQueryString('page', page.toString());
 	};
 
@@ -61,7 +61,7 @@ function Paginate({ totalItems }: { totalItems: number }) {
 					className={`${page === 1 ? 'cursor-not-allowed opacity-50' : ''} cursor-pointer`}
 				>
 					<PaginationPrevious
-						onClick={() => router.push(page === totalPages ? '#' : getURL(page - 1)!)}
+						onClick={() => router.push(page === totalPages ? '#' : getURL(page - 1))}
 						aria-disabled={page === 1}
 					/>
 				</PaginationItem>
@@ -74,7 +74,7 @@ function Paginate({ totalItems }: { totalItems: number }) {
 							) : (
 								<PaginationLink
 									className="cursor-pointer"
-									onClick={() => router.push(getURL(pageNumber)!)}
+										onClick={() => router.push(getURL(pageNumber))}
 									isActive={pageNumber === page}
 								>
 									{pageNumber}
@@ -94,7 +94,7 @@ function Paginate({ totalItems }: { totalItems: number }) {
 				>
 					<PaginationNext
 						className="cursor-pointer"
-						onClick={() => router.push(page === totalPages ? '#' : getURL(page + 1)!)}
+						onClick={() => router.push(page === totalPages ? '#' : getURL(page + 1))}
 						aria-disabled={page === totalPages}
 					/>
 				</PaginationItem>

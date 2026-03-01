@@ -93,9 +93,9 @@ export default function Component({ user }: Props) {
 			if (user.channelId && user.accessHash) {
 				try {
 
-					const channelId = user?.channelId!.startsWith('-100')
-						? user?.channelId!
-						: `-100${user?.channelId!}`;
+					const channelId = user.channelId.startsWith('-100')
+						? user.channelId
+						: `-100${user.channelId}`;
 					const entity = await clientInstance.getInputEntity(channelId);
 					const testMessage = 'This is test to message to verify that we can still access this channel'
 					const result = await clientInstance.sendMessage(entity, {

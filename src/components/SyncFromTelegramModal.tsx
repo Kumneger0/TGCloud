@@ -503,14 +503,14 @@ export function SyncFromTelegramModal({
 }
 
 function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
-	const client = useGlobalStore((s) => s.client)!;
+	const client = useGlobalStore((s) => s.client);
 	const user = useGlobalStore((s) => s.user);
 	const { handleError } = useErrorHandler()
 
 	const { data: previewUrl, isPending } = useQuery({
 		queryKey: ['sync-preview', c.fileTelegramId],
 		queryFn: async () => {
-			if (!user) return null;
+			if (!user || !client) return null;
 			try {
 				if (c.category === 'image') {
 					const result = await withTelegramConnection(client, async (client) => {
