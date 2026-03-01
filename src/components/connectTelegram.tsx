@@ -348,8 +348,12 @@ export default function Component({ user }: Props) {
 															' Yay! You have successfully connected your Telegram channel with our platform! '
 													});
 													if (sentMessage?.id) {
+														if (id == null || accessHash == null) {
+															toast.error('Failed to retrieve channel ID or access hash. Please check Bot permissions.');
+															return;
+														}
 														const result = await saveTelegramCredentials({
-															channelId: String(id) as string,
+															channelId: String(id),
 															accessHash: String(accessHash),
 															channelTitle: '',
 															botToken: botToken as string | null || undefined,
