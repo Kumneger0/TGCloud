@@ -104,10 +104,10 @@ export function SyncFromTelegramModal({
 				const cacheKey = `telegram-messages-${user.id}-${currentOffsetId}-${user.channelId}`;
 
 				const cachedMessages = currentOffsetId ? await messageCacheDb.messageCache.get({ cacheKey }) : null;
-				const messages = await tgClient.getMessages(entity, {
+				const messages = await withTelegramConnection(tgClient, (c) => c.getMessages(entity, {
 					limit: TELEGRAM_BATCH_SIZE,
 					offsetId: currentOffsetId ? Number(currentOffsetId) : undefined
-				})
+				}))
 
 				if (!messages || messages.length === 0) {
 					hasMore = false;

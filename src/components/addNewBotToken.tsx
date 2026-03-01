@@ -50,10 +50,14 @@ function AddNewBotTokenForm() {
 								toast.error('Invalid bot token');
 								return;
 							}
-							if (client.connected) await client.connect()
-							const channelId = user?.channelId!.startsWith('-100')
-								? user?.channelId!
-								: `-100${user?.channelId!}`;
+							if (!client.connected) await client.connect()
+							if (!user.channelId) {
+								toast.error('Something went wrong, please try again later');
+								return;
+							}
+							const channelId = user.channelId.startsWith('-100')
+								? user.channelId
+								: `-100${user.channelId}`;
 
 							const entity = await client.getInputEntity(channelId);
 							const testMessage = await client?.sendMessage(

@@ -92,7 +92,7 @@ export async function getTgClient(options: GetTgClientOptions) {
 						isRateLimited: true,
 						retryAfter: waitTime
 					});
-					const tokenId = user?.botTokens?.find((token) => token.token === userBotToken)?.id;
+					const tokenId = user?.botTokens?.find((token) => token.token === botToken)?.id;
 
 					if (tokenId) {
 						await updateTokenRateLimit(tokenId, timeInMilliseconds);

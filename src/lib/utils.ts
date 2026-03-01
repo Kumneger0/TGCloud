@@ -86,10 +86,12 @@ export async function uploadFiles(
 				}
 			});
 
-			const channelId = user?.channelId!.startsWith('-100')
-				? user?.channelId!
-				: `-100${user?.channelId!}`;
-			const entity = await client.getInputEntity(channelId);
+			if (!user || !user.channelId) throw new Error('User channel ID is missing');
+			const channelId = user.channelId;
+			const normalizedId = channelId.startsWith('-100')
+				? channelId
+				: `-100${channelId}`;
+			const entity = await client.getInputEntity(normalizedId);
 
 			const result = await client.sendFile(entity, {
 				file: toUpload,
@@ -131,11 +133,13 @@ export async function deleteItem(
 	if (!client.connected) await client.connect();
 
 	try {
-		const channelId = user?.channelId!.startsWith('-100')
-			? user?.channelId!
-			: `-100${user?.channelId!}`;
+		if (!user || !user.channelId) throw new Error('User channel ID is missing');
+		const channelId = user.channelId;
+		const normalizedId = channelId.startsWith('-100')
+			? channelId
+			: `-100${channelId}`;
 
-		const entity = await client.getInputEntity(channelId);
+		const entity = await client.getInputEntity(normalizedId);
 		const affectedMessages = await client.deleteMessages(
 			entity,
 			Array.isArray(postId) ? postId.map(Number) : [Number(postId)],
