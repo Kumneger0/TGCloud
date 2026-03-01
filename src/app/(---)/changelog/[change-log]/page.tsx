@@ -29,6 +29,20 @@ export const generateMetadata = async ({ params }: ChangelogDetailPageProps): Pr
 		title: `Changelog - ${title}`,
 		description,
 		openGraph: {
+			title: `Changelog - ${title}`,
+			description,
+			images: [
+				{
+					url: `/api/og?text=${encodeURIComponent(ogText)}`,
+					width: 1200,
+					height: 630,
+					alt: ogText
+				}
+			]
+		},
+		twitter: {
+			title: `Changelog - ${title}`,
+			description,
 			images: [
 				{
 					url: `/api/og?text=${encodeURIComponent(ogText)}`,
