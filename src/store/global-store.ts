@@ -25,7 +25,7 @@ export interface AudioPlayerState {
 type GlobalStoreType = {
 	user: User & { telegramSession?: string } | null;
 	userTgInfo: Api.User | null;
-	setUser: (user: User & { telegramSession?: string }) => void;
+	setUser: (user: (User & { telegramSession?: string }) | null) => void;
 	setUserTgInfo: (userTgInfo: Api.User) => void;
 	sortBy: SortBy;
 	setSortBy: (sortBy: SortBy) => void;
@@ -59,7 +59,7 @@ type GlobalStoreType = {
 export const useGlobalStore = create<GlobalStoreType>((set, get) => ({
 	user: null,
 	userTgInfo: null,
-	setUser: (user: User & { telegramSession?: string }) => set({ user }),
+	setUser: (user) => set({ user }),
 	setUserTgInfo: (userTgInfo: Api.User) => set({ userTgInfo }),
 	client: null,
 	setClient: (client: TelegramClient | null) => set({ client }),

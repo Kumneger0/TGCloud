@@ -1,11 +1,13 @@
 'use client';
 import {
+	BotTokenExpiredModalContent,
 	ChannelAccessDeniedModalContent,
 	ConnectionErrorModalContent,
 	ReLoginModalContent
 } from '@/components/fileConnectionErrorModals';
 import { telegramErrorMessagesThatNeedReLogin } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
+import { useGlobalStore } from '@/store/global-store';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -13,24 +15,27 @@ import { toast } from 'sonner';
 
 export function useErrorHandler() {
 	const { openModal, closeModal } = useGlobalModal();
+	const user = useGlobalStore((s) => s.user)
 	const router = useRouter();
 	const [isReconnecting, setIsReconnecting] = useState(false);
-
 
 	function handleError(
 		err: unknown,
 		options?: {
-			authType?: 'bot' | 'user';
 			onReconnect?: () => Promise<void> | void;
 		}
 	) {
-		const authType = options?.authType ?? 'user';
+
+		if (!user) {
+			return "User not found";
+		}
+		const authType = user.authType;
 		const message = err instanceof Error ? err.message : String(err);
 		const needsReLogin = telegramErrorMessagesThatNeedReLogin.some((code) =>
 			message.includes(code)
 		);
 
-		if (needsReLogin) {
+		if (needsReLogin && authType === 'user') {
 			closeModal(true)
 			openModal({
 				forceDialog: true,
@@ -82,6 +87,16 @@ export function useErrorHandler() {
 			});
 			return "We encountered an issue while connecting to Telegram servers. This is usually temporary, try refreshing the page."
 		}
+
+		if (message.includes('ACCESS_TOKEN_EXPIRED')) {
+			closeModal(true)
+			openModal({
+				forceDialog: true,
+				content: <BotTokenExpiredModalContent />
+			});
+			return "We encountered an issue while connecting to Telegram servers. This is usually temporary, try refreshing the page."
+		}
+
 		toast.error("Something went wrong. Please try again later.");
 	}
 

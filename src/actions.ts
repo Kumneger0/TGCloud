@@ -14,7 +14,7 @@ import {
 	usersTable
 } from './db/schema';
 import { USER_TELEGRAM_SESSION_COOKIE_NAME } from './lib/consts';
-import { FileItem } from './lib/types';
+import { FileItem, User } from './lib/types';
 
 export type FolderHierarchy = {
 	id: string;
@@ -196,6 +196,32 @@ export async function addToken(token: string) {
 	} catch (error) {
 		console.error('Error adding token:', error);
 	}
+
+}
+
+
+export async function removeBotTokens() {
+	try {
+		const user = await getUser()
+		if (!user) {
+			return { success: false, message: 'you need to be loggged in to delete the bot token ' }
+		}
+		const deleteResult = await db.delete(botTokens).where(eq(botTokens.userId, user.id)).returning()
+		if (deleteResult.length === 0) {
+			return { success: false, message: 'bot token not found' }
+		}
+		return {
+			success: true,
+			message: 'bot token deleted successfully'
+		}
+
+	} catch (err) {
+		const message = err instanceof Error ? err.message : "failed to delelte the bot token"
+		return {
+			success: false,
+			message
+		}
+	}
 }
 
 type SaveTelegramCredentialsArgs =
@@ -214,7 +240,7 @@ type SaveTelegramCredentialsArgs =
 		authType: 'bot';
 	};
 
-export async function saveTelegramCredentials(options: SaveTelegramCredentialsArgs) {
+export async function saveTelegramCredentials(options: SaveTelegramCredentialsArgs): Promise<{ success: boolean, data: Omit<User, "botTokens">, message?: string }> {
 	if (options.authType === 'user' && !options.session) {
 		throw new Error('Session is required ');
 	}
@@ -244,6 +270,22 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 				token: options.botToken
 			});
 		}
+		//check if the channel id is already exists
+		const existingChannel = await db
+			.select()
+			.from(usersTable)
+			.where(eq(usersTable.channelId, options.channelId))
+			.execute();
+		if (existingChannel.length > 0) {
+			return {
+				success: false,
+				message: 'Channel already exists',
+				data: {
+					...user,
+					telegramSession: options.authType === 'user' ? options.session : undefined,
+				}
+			}
+		}
 		const result = await db
 			.update(usersTable)
 			.set({
@@ -253,10 +295,25 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 			})
 			.where(eq(usersTable.id, user.id))
 			.returning();
-		return result;
+		return {
+			success: true,
+			data: {
+				...result[0],
+				telegramSession: options.authType === 'user' ? options.session : undefined,
+			},
+			message: 'Telegram credentials saved successfully'
+		}
 	} catch (error) {
+		const message = error instanceof Error ? error.message : "Failed to save telegram credentials"
 		console.error('Error while saving Telegram credentials:', error);
-		throw new Error('There was an error while saving Telegram credentials.');
+		return {
+			success: false,
+			message,
+			data: {
+				...user,
+				telegramSession: options.authType === 'user' ? options.session : undefined,
+			}
+		}
 	}
 }
 

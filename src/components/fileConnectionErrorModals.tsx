@@ -1,7 +1,8 @@
 'use client';
-import { clearFilesAndChannelDetails } from '@/actions';
-import { ErrorState } from './ErrorState';
+import { clearFilesAndChannelDetails, removeBotTokens } from '@/actions';
 import { useGlobalStore } from '@/store/global-store';
+import { toast } from 'sonner';
+import { ErrorState } from './ErrorState';
 
 interface ChannelAccessDeniedModalContentProps {
 	authType: 'bot' | 'user';
@@ -126,6 +127,26 @@ export function ConnectionErrorModalContent({ message }: ConnectionErrorModalCon
 				label: 'Reload Page',
 				onClick: async () => {
 					window.location.reload();
+				}
+			}}
+		/>
+	);
+}
+
+
+export function BotTokenExpiredModalContent() {
+	return (
+		<ErrorState
+			title="Bot Token Expired"
+			description="Your bot token has expired. Please update your bot token to continue using the service."
+			actionButton={{
+				label: 'Remove Bot Tokens',
+				onClick: async () => {
+					const result = await removeBotTokens()
+					toast[result.success ? "success" : "error"](result.message)
+					if (result.success) {
+						window.location.href = '/connect-telegram';
+					}
 				}
 			}}
 		/>

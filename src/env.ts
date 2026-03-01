@@ -18,7 +18,6 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
 		NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string(),
 		NEXT_PUBLIC_GITHUB_CLIENT_ID: z.string(),
-		NEXT_PUBLIC_BOT_TOKEN: z.string()
 	},
 	runtimeEnv: {
 		RESEND_API_KEY: process.env.RESEND_API_KEY,
@@ -34,6 +33,5 @@ export const env = createEnv({
 		NEXT_PUBLIC_GITHUB_CLIENT_ID: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID,
 		supportMail: process.env.supportMail,
 		supportRecipients: process.env.supportRecipients,
-		NEXT_PUBLIC_BOT_TOKEN: process.env.NEXT_PUBLIC_BOT_TOKEN
 	}
 });

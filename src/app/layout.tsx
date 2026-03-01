@@ -9,6 +9,9 @@ import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
 import Providers, { CSPostHogProvider } from '@/lib/context';
 import { GlobalModal } from '@/components/GlobalModal';
+import { getUser } from '@/actions';
+import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
+import { cookies } from 'next/headers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -49,6 +52,10 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const user = await getUser();
+	const cookieStore = await cookies();
+	const stringSession = cookieStore.get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value;
+
 	return (
 		<html lang="en">
 			<head>
@@ -57,7 +64,7 @@ export default async function RootLayout({
 
 			<CSPostHogProvider>
 				<body className={inter.className}>
-					<Providers>
+					<Providers user={user ? { ...user, telegramSession: stringSession } : null}>
 						<ThemeProvider
 							attribute="class"
 							defaultTheme="system"

@@ -19,7 +19,6 @@ import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 
@@ -51,7 +50,6 @@ interface Props {
 
 export default function Component({ user }: Props) {
 	const router = useRouter();
-	const [selectedBot, setSelectedBot] = useState<'default' | 'custom'>('default');
 	const [activeTab, setActiveTab] = useState<'bot' | 'user'>('user');
 	const [isUserLoading, setIsUserLoading] = useState(false);
 
@@ -106,15 +104,18 @@ export default function Component({ user }: Props) {
 
 					if (result.id) {
 						clientInstance.deleteMessages(entity, [result.id], { revoke: true }).catch((err) => { console.error(err) });
-						await saveTelegramCredentials({
+						const saveResult = await saveTelegramCredentials({
 							session: tgUserSession,
 							accessHash: user.accessHash,
 							channelId: user.channelId,
 							channelTitle: user.channelTitle || user.name + "Drive",
 							authType: 'user'
 						});
-						posthog.capture('userTelegramAccountConnect', { userId: user.id });
-						router.push('/files');
+						saveResult.message && toast[saveResult.success ? 'success' : 'error'](saveResult.message);
+						if (saveResult.success) {
+							posthog.capture('userTelegramAccountConnect', { userId: user.id });
+							router.push('/files');
+						}
 						return;
 					}
 				} catch (err) {
@@ -133,7 +134,7 @@ export default function Component({ user }: Props) {
 				});
 
 				const { accessHash, channelTitle, id } = channelDetails;
-				await saveTelegramCredentials({
+				const result = await saveTelegramCredentials({
 					session: tgUserSession,
 					accessHash,
 					channelId: id,
@@ -141,6 +142,7 @@ export default function Component({ user }: Props) {
 					authType: 'user'
 				});
 
+				toast[result.success ? "success" : "error"](result.message);
 				window.location.href = '/files';
 			}
 		} catch (err) {
@@ -245,53 +247,24 @@ export default function Component({ user }: Props) {
 
 									{/* Step 2 */}
 									<div className="border border-border rounded-lg p-4 bg-card">
-										<h3 className="font-semibold flex items-center gap-2 mb-4 text-foreground">
+										<h3 className="font-semibold flex items-center gap-2 mb-2 text-foreground">
 											<span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold">
 												2
 											</span>
 											Configure Bot
 										</h3>
 
-										<RadioGroup
-											defaultValue="default"
-											onValueChange={(value) => setSelectedBot(value as 'default' | 'custom')}
-											className="space-y-3 mb-4"
-										>
-											<div className="flex items-center space-x-2 border border-border p-3 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-colors">
-												<RadioGroupItem value="default" id="default" className="border-primary text-primary" />
-												<Label htmlFor="default" className="flex-1 cursor-pointer text-foreground">
-													<span className="font-medium">Use TGCloud Bot</span>
-													<p className="text-xs text-muted-foreground mt-1">
-														Quick setup, uses our shared bot.
-													</p>
-												</Label>
-											</div>
-											<div className="flex items-center space-x-2 border border-border p-3 rounded-md has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-colors">
-												<RadioGroupItem value="custom" id="custom" className="border-primary text-primary" />
-												<Label htmlFor="custom" className="flex-1 cursor-pointer text-foreground">
-													<span className="font-medium">Use Custom Bot</span>
-													<span className="ml-2 text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full dark:bg-green-900/40 dark:text-green-300">Recommended</span>
-													<p className="text-xs text-muted-foreground mt-1">
-														Better for privacy and control.
-													</p>
-												</Label>
-											</div>
-										</RadioGroup>
+										<p className="text-sm text-muted-foreground mb-3">
+											You must create and use your own Telegram Bot.
+										</p>
 
 										<div className="text-sm space-y-3 bg-muted/50 p-3 rounded-md border border-border/50 text-foreground">
-											{selectedBot === 'custom' ? (
-												<>
-													<p>1. Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-primary hover:underline">@BotFather</a></p>
-													<p>2. Send command <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs border border-border">/newbot</code></p>
-													<p>3. Follow instructions to get your <strong>Bot Token</strong></p>
-													<p>4. <strong>Important:</strong> Add your new bot to your channel as an Admin.</p>
-												</>
-											) : (
-												<>
-													<p>1. Open your channel info</p>
-													<p>2. Add <a href="https://t.me/tgcloudet2024_bot" target="_blank" rel="noreferrer" className="text-primary hover:underline">@tgcloudet2024_bot</a> as an Admin</p>
-												</>
-											)}
+											<>
+												<p>1. Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-primary hover:underline">@BotFather</a></p>
+												<p>2. Send command <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs border border-border">/newbot</code></p>
+												<p>3. Follow instructions to get your <strong>Bot Token</strong></p>
+												<p>4. <strong>Important:</strong> Add your new bot to your channel as an Admin.</p>
+											</>
 										</div>
 									</div>
 
@@ -347,7 +320,7 @@ export default function Component({ user }: Props) {
 
 												if (!channelId) return;
 
-												if (selectedBot === 'custom' && !botToken) {
+												if (!botToken) {
 													toast.error('Please enter your bot token');
 													return;
 												}
@@ -375,13 +348,17 @@ export default function Component({ user }: Props) {
 															' Yay! You have successfully connected your Telegram channel with our platform! '
 													});
 													if (sentMessage?.id) {
-														await saveTelegramCredentials({
+														const result = await saveTelegramCredentials({
 															channelId: String(id) as string,
 															accessHash: String(accessHash),
 															channelTitle: '',
 															botToken: botToken as string | null || undefined,
 															authType: 'bot'
 														});
+														if (!result.success) {
+															toast.error(result.message);
+															return;
+														}
 														toast.success('Channel Connected Successfully');
 														typeof window !== 'undefined' && window.location.replace('/files');
 													}
@@ -398,6 +375,7 @@ export default function Component({ user }: Props) {
 													name="channelId"
 													id="channelId"
 													type="text"
+													defaultValue={user.channelId ? user.channelId.startsWith('-100') ? user.channelId : `-100${user.channelId}` : ''}
 													placeholder="-1001234567890"
 													required
 													className="font-mono bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
@@ -407,25 +385,23 @@ export default function Component({ user }: Props) {
 												</p>
 											</div>
 
-											{selectedBot === 'custom' && (
-												<div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-													<label htmlFor="botToken" className="text-sm font-medium text-foreground">
-														Bot Token
-														<span className="text-destructive ml-1">*</span>
-													</label>
-													<Input
-														type="text"
-														id="botToken"
-														name="botToken"
-														placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
-														className="font-mono text-sm bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
-														required
-													/>
-													<p className="text-[10px] text-muted-foreground">
-														From @BotFather
-													</p>
-												</div>
-											)}
+											<div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+												<label htmlFor="botToken" className="text-sm font-medium text-foreground">
+													Bot Token
+													<span className="text-destructive ml-1">*</span>
+												</label>
+												<Input
+													type="text"
+													id="botToken"
+													name="botToken"
+													placeholder="123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+													className="font-mono text-sm bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
+													required
+												/>
+												<p className="text-[10px] text-muted-foreground">
+													From @BotFather
+												</p>
+											</div>
 
 											<div className="pt-2">
 												<ConnectChannelButton />

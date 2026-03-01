@@ -52,24 +52,18 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { toast } from 'sonner';
 
 function Files({
-	user,
 	files,
 	currentFolderId
 }: {
-	user: User & {
-		telegramSession: string | undefined;
-		plan: NonNullable<User>['plan'];
-		botTokens: { token: string }[];
-	};
 	mimeType?: string;
 		files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
 	currentFolderId: string | null;
 }) {
+	const user = useGlobalStore((state) => state.user);
 	const sortBy = useGlobalStore((state) => state.sortBy);
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
 	const botRateLimit = useGlobalStore((state) => state.botRateLimit);
 	const isSwitchingFolder = useGlobalStore((state) => state.isSwitchingFolder);
-	const setUser = useGlobalStore((s) => s.setUser);
 	const setClient = useGlobalStore((s) => s.setClient);
 	const { handleError } = useErrorHandler();
 
@@ -98,8 +92,8 @@ function Files({
 	};
 
 	useEffect(() => {
-		setUser(user);
 		const getClient = async () => {
+			if (!user) return;
 			setIsPending(true);
 			const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
 				user.authType === 'user' && user.telegramSession
@@ -148,7 +142,6 @@ function Files({
 				}
 			} catch (err) {
 				const message = handleError(err, {
-					authType: user.authType,
 					onReconnect: async () => {
 						setIsUserLoading(true);
 						await connectTelegramUser();
@@ -161,7 +154,7 @@ function Files({
 		};
 
 		getClient();
-	}, [user.telegramSession, user.authType, client?.connected]);
+	}, [user?.telegramSession, user?.authType, client?.connected]);
 
 	const [isUserLoading, setIsUserLoading] = useState(false);
 	const [selectedFiles, setSelectedFiles] = useState<typeof files>([]);
@@ -197,6 +190,7 @@ function Files({
 
 	async function connectTelegramUser() {
 		try {
+			if (!user) return;
 			setIsUserLoading(true);
 
 			const clientInstance = await getClient();
@@ -221,13 +215,17 @@ function Files({
 			}
 
 			if (user.channelId && user.accessHash) {
-				await saveTelegramCredentials({
+				const result = await saveTelegramCredentials({
 					session: newSession,
 					accessHash: user.accessHash,
 					channelId: user.channelId,
 					channelTitle: user.channelTitle ?? user.name + 'Drive',
 					authType: 'user'
 				});
+				if (!result.success) {
+					toast.error(result.message);
+					return;
+				}
 				posthog.capture('userTelegramAccountConnect', { userId: user.id });
 				window.location.reload();
 				return;
@@ -242,7 +240,20 @@ function Files({
 		}
 	}
 
-	if (isSwitchingFolder || ((user.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user.authType == "user" && isPending))) {
+	if (!user) {
+		return (
+			<div className="flex items-center justify-center h-full">
+				<div className="text-center space-y-4 max-w-2xl px-4">
+					<h2 className="text-2xl font-bold">Something went wrong</h2>
+					<p className="text-muted-foreground">
+						Please try again later
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (isSwitchingFolder || ((user?.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user?.authType == "user" && isPending))) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -250,7 +261,7 @@ function Files({
 		);
 	}
 
-	if (error || ((user.authType == "bot" && !botRateLimit.isRateLimited && !client) || (user.authType == "user" && !client))) {
+	if (error && ((user?.authType == "bot" && !botRateLimit.isRateLimited && !client) || (user?.authType == "user" && !client))) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
@@ -261,7 +272,7 @@ function Files({
 		);
 	}
 
-	if (botRateLimit.isRateLimited && user.authType === 'bot') {
+	if (botRateLimit.isRateLimited && user?.authType === 'bot') {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4 max-w-2xl px-4">
@@ -383,7 +394,7 @@ function Files({
 		);
 
 	async function batchDelete() {
-		if (!Array.isArray(selectedFiles)) return;
+		if (!Array.isArray(selectedFiles) || !user) return;
 		try {
 			const fileTelegramIds = selectedFiles
 				.map((file) => file.fileTelegramId)
@@ -453,6 +464,45 @@ function Files({
 	);
 }
 
+function DeleteModalContent({
+	closeModal,
+	deleteFn
+}: {
+		closeModal: () => void;
+	deleteFn: () => Promise<void>;
+}) {
+	const [isDeleting, setIsDeleting] = useState(false);
+
+	return (
+		<div className="space-y-6">
+			<p className="text-sm text-muted-foreground">
+				This action cannot be undone. This will permanently delete all selected files from your
+				Telegram channel.
+			</p>
+			<div className="flex justify-end gap-3">
+				<Button variant="outline" disabled={isDeleting} onClick={() => closeModal()}>
+					Cancel
+				</Button>
+				<Button
+					variant="destructive"
+					disabled={isDeleting}
+					onClick={async () => {
+						setIsDeleting(true);
+						try {
+							await deleteFn();
+						} finally {
+							setIsDeleting(false);
+							closeModal();
+						}
+					}}
+				>
+					{isDeleting ? 'Deleting...' : 'Continue'}
+				</Button>
+			</div>
+		</div>
+	);
+}
+
 function DeleteAllFiles({
 	children,
 	deleteFn
@@ -466,28 +516,7 @@ function DeleteAllFiles({
 		openModal({
 			title: 'Are you absolutely sure?',
 			forceDialog: true,
-			content: (
-				<div className="space-y-6">
-					<p className="text-sm text-muted-foreground">
-						This action cannot be undone. This will permanently delete all selected files from your
-						Telegram channel.
-					</p>
-					<div className="flex justify-end gap-3">
-						<Button variant="outline" onClick={() => closeModal()}>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={async () => {
-								closeModal();
-								await deleteFn();
-							}}
-						>
-							Continue
-						</Button>
-					</div>
-				</div>
-			)
+			content: <DeleteModalContent closeModal={closeModal} deleteFn={deleteFn} />
 		});
 	};
 
@@ -545,7 +574,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				}
 				return { thumbnail: undefined };
 			} catch (err) {
-				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				handleError(err, { onReconnect: () => window.location.reload() })
 				return { thumbnail: undefined };
 			}
 		}
@@ -571,7 +600,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				}
 			}
 			catch (err) {
-				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				handleError(err, { onReconnect: () => window.location.reload() })
 			}
 		});
 		return () => cancelIdleCallback(idleId);
@@ -841,7 +870,7 @@ const VideoMediaView = React.memo(
 					});
 					return { url };
 				} catch (err) {
-					handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+					handleError(err, { onReconnect: () => window.location.reload() })
 					setError('Failed to stream media');
 					return { url: undefined }
 				}
