@@ -1,6 +1,6 @@
 'use client';
 
-import { useCreateQueryString } from '@/lib/utils';
+import { QUERY_KEYS, useCreateQueryString } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
 import { useGlobalStore } from '@/store/global-store';
 import { useQueryClient } from '@tanstack/react-query';
@@ -14,7 +14,7 @@ export function FileModalView({
 }: {
 	children: React.ReactNode;
 		modalContent: React.ReactNode;
-		queryKey: string;
+		queryKey: ReturnType<typeof QUERY_KEYS[keyof typeof QUERY_KEYS]>
 	id: number;
 }) {
 	const searchParams = useSearchParams();
@@ -32,6 +32,7 @@ export function FileModalView({
 		router.push(pathname + '?' + createQueryString('open', id.toString()));
 		openModal({
 			content: modalContent,
+			closeMediaOnClose: queryKey.startsWith('audio') || queryKey.startsWith('video'),
 			size: 'lg',
 			onClose: async (closeMediaOnClose: boolean) => {
 				await queryClient.invalidateQueries({ queryKey: [queryKey] });
@@ -46,7 +47,7 @@ export function FileModalView({
 		});
 	};
 
-	return (	
+	return (
 		<button
 			type="button"
 			className="w-full text-left"

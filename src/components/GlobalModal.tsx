@@ -7,7 +7,7 @@ import { useGlobalModal } from "@/store/global-modal"
 import { useMediaQuery } from "./useMediaQuery"
 
 export const GlobalModal = () => {
-    const { isOpen, title, content, closeModal, className, forceDialog, size } = useGlobalModal()
+    const { isOpen, title, content, closeModal, className, forceDialog, size, closeMediaOnClose } = useGlobalModal()
     const isDesktop = useMediaQuery('(min-width: 768px)')
 
     const sizeClasses = {
@@ -23,7 +23,7 @@ export const GlobalModal = () => {
 
     if (isDesktop || forceDialog) {
         return (
-            <Dialog key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+            <Dialog key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal(closeMediaOnClose)}>
                 <DialogContent className={cn(
                     "max-h-[90dvh] overflow-y-auto w-full",
                     sizeClasses[size || 'sm'],
@@ -39,7 +39,7 @@ export const GlobalModal = () => {
     }
 
     return (
-        <Drawer key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal()}>
+        <Drawer key={modalContenetKey} open={isOpen} onOpenChange={(open) => !open && closeModal(closeMediaOnClose)}>
             <DrawerContent className={cn(
                 isLarge ? "h-[90dvh]" : "max-h-[90dvh]",
                 className

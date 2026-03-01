@@ -26,10 +26,10 @@ export function getMediaCategory(mimeType: string): MediaCategory {
 export const telegramErrorMessagesThatNeedReLogin = ["SESSION_REVOKED", "AUTH_KEY_DUPLICATED", "AUTH_KEY_UNREGISTERED", "AUTH_KEY_INVALID", "USER_DEACTIVATED", "SESSION_EXPIRED"]
 
 export const QUERY_KEYS = {
-	audio: (id: number) => `audio-media-view-${id}`,
-	video: (id: number) => `video-media-view-${id}`,
-	image: (id: number) => `image-media-view-${id}`,
-	document: (id: number) => `document-media-view-${id}`,
+	audio: (id: number) => `${"audio-media-view-" as const}${id}` as const,
+	video: (id: number) => `${"video-media-view-" as const}${id}` as const,
+	image: (id: number) => `${"image-media-view-" as const}${id}` as const,
+	document: (id: number) => `${"document-media-view-" as const}${id}` as const,
 }
 interface DownloadMediaOptions {
 	user: NonNullable<User>;
