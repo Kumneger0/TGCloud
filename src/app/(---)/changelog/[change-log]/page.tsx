@@ -24,7 +24,7 @@ export const generateMetadata = async ({ params }: ChangelogDetailPageProps): Pr
 	} catch (e) {
 		//
 	}
-	const ogText = `🚀 TGCloud ${changeLog} Updates`;
+	const ogText = `TGCloud ${changeLog} Updates`;
 	return {
 		title: `Changelog - ${title}`,
 		description,
