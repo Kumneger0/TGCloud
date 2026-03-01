@@ -40,7 +40,10 @@ export const UploadFiles = ({
 	const handleSubmit = async (formData: FormData) => {
 		if (botRateLimit.isRateLimited) return null;
 
-		if (!client) return null;
+		if (!client) {
+			toast.error('Upload unavailable: missing client');
+			return null;
+		}
 
 		toast.promise(() => {
 			closeModal();
