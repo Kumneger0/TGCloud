@@ -17,7 +17,6 @@ export function useErrorHandler() {
 	const { openModal, closeModal } = useGlobalModal();
 	const user = useGlobalStore((s) => s.user)
 	const router = useRouter();
-	const [isReconnecting, setIsReconnecting] = useState(false);
 
 	function handleError(
 		err: unknown,
@@ -41,16 +40,8 @@ export function useErrorHandler() {
 				forceDialog: true,
 				content: (
 					<ReLoginModalContent
-						isUserLoading={isReconnecting}
 						closeModal={closeModal}
-						onReconnect={async () => {
-							setIsReconnecting(true);
-							try {
-								await options?.onReconnect?.();
-							} finally {
-								setIsReconnecting(false);
-							}
-						}}
+						onReconnect={options?.onReconnect}
 					/>
 				)
 			});
@@ -100,7 +91,7 @@ export function useErrorHandler() {
 		toast.error("Something went wrong. Please try again later.");
 	}
 
-	return { handleError, isReconnecting };
+	return { handleError };
 }
 
 
