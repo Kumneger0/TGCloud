@@ -88,6 +88,7 @@ export function useErrorHandler() {
 			return "We encountered an issue while connecting to Telegram servers. This is usually temporary, try refreshing the page."
 		}
 
+		console.error("error", err)
 		toast.error("Something went wrong. Please try again later.");
 	}
 
