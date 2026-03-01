@@ -271,7 +271,6 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 				token: options.botToken
 			});
 		}
-		//check if the channel id is already exists
 		const existingChannel = await db
 			.select()
 			.from(usersTable)
