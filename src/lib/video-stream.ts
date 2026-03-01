@@ -86,7 +86,8 @@ const streamWebM = async (
 					if (!isAppending && queue.length > 0 && !sourceBuffer.updating) {
 						isAppending = true;
 						try {
-							sourceBuffer.appendBuffer(queue.shift()!);
+							const buf = queue.shift();
+							if (buf) sourceBuffer.appendBuffer(buf);
 						} catch (e) {
 							console.error('Error appending buffer:', e);
 						}
@@ -163,7 +164,8 @@ const streamDirectAudio = async (
 						if (!isAppending && queue.length > 0 && !sourceBuffer.updating) {
 							isAppending = true;
 							try {
-								sourceBuffer.appendBuffer(queue.shift()! as BufferSource);
+								const buf = queue.shift();
+								if (buf) sourceBuffer.appendBuffer(buf as BufferSource);
 							} catch (e) {
 								console.error('Error appending audio buffer:', e);
 							}
@@ -268,7 +270,8 @@ const streamMP4 = async (
 			if (isAppending) return;
 			if (queue.length === 0) return;
 
-			const item = queue.shift()!;
+			const item = queue.shift();
+			if (!item) return;
 			const sb = sourceBuffers[item.id];
 			if (!sb || sb.updating || mediaSource.readyState !== "open") return;
 

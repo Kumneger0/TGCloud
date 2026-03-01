@@ -51,7 +51,7 @@ function AddNewBotTokenForm() {
 								return;
 							}
 							if (!client.connected) await client.connect()
-							if (!user.channelId) {
+							if (!user.channelId || !user.accessHash) {
 								toast.error('Something went wrong, please try again later');
 								return;
 							}
@@ -75,9 +75,9 @@ function AddNewBotTokenForm() {
 									}
 								)?.channelId;
 								const result = await saveTelegramCredentials({
-									accessHash: user.accessHash!,
+									accessHash: user.accessHash,
 									channelId: String(id),
-									channelTitle: user.channelTitle!,
+									channelTitle: user.channelTitle ?? " ",
 									authType: 'bot'
 								});
 								result.message && toast[result.success ? "success" : "error"](result.message);

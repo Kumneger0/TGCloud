@@ -91,7 +91,7 @@ export default function FolderNavigationBar({
 									const expectedPath = pathNames.slice(0, index + 1);
 									const fullPath = `/${expectedPath.join('/')}`;
 									const matchingFolder = allFolder.find((f) => f.path === fullPath);
-									const query = createQueryString('folderId', matchingFolder?.id!);
+									const query = createQueryString('folderId', matchingFolder?.id || '');
 									startTransition(() => {
 										setOPtimisticPathNames(expectedPath);
 										router.push(pathname + '?' + query);

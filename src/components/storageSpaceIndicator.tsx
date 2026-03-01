@@ -6,11 +6,12 @@ import { HardDrive, Infinity } from 'lucide-react';
 
 export default async function SpaceUsageIndicator() {
 	const user = await getUser();
-	if (!user?.id) return null;
+	const userId = user?.id;
+	if (!userId) return null;
 
 	const fileSizes = await db.query.userFiles.findMany({
 		where(fields, { eq }) {
-			return eq(fields.userId, user?.id!);
+			return eq(fields.userId, userId);
 		},
 		columns: {
 			size: true
