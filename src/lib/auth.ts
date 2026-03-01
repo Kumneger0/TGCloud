@@ -1,5 +1,6 @@
 import { db } from '@/db';
 import * as schema from '@/db/schema';
+import { dash } from '@better-auth/infra'
 import { env } from '@/env';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
@@ -30,5 +31,5 @@ export const auth = betterAuth({
 			clientSecret: env.GITHUB_CLIENT_SECRET || ''
 		}, 
 	},
-	plugins: [nextCookies()]
+	plugins: [nextCookies(), dash()]
 });

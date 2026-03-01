@@ -18,6 +18,7 @@
 		"typecheck": "tsc --project tsconfig.json"
 	},
 	"dependencies": {
+		"@better-auth/infra": "^0.1.8",
 		"@bprogress/next": "^3.2.12",
 		"@next/env": "16.1.6",
 		"@radix-ui/react-accordion": "^1.2.12",
