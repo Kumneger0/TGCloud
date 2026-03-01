@@ -3,6 +3,7 @@ import { clearFilesAndChannelDetails, removeBotTokens } from '@/actions';
 import { useGlobalStore } from '@/store/global-store';
 import { toast } from 'sonner';
 import { ErrorState } from './ErrorState';
+import { useState } from 'react';
 
 interface ChannelAccessDeniedModalContentProps {
 	authType: 'bot' | 'user';
@@ -86,16 +87,16 @@ export function ChannelAccessDeniedModalContent({
 }
 
 interface ReLoginModalContentProps {
-	isUserLoading: boolean;
 	closeModal: () => void;
-	onReconnect: () => void;
+	onReconnect?: () => Promise<void> | void;
 }
 
 export function ReLoginModalContent({
-	isUserLoading,
 	closeModal,
 	onReconnect
 }: ReLoginModalContentProps) {
+	const [isUserLoading, setIsUserLoading] = useState(false);
+
 	return (
 		<ErrorState
 			title="Telegram is forcing us to login again"
@@ -105,8 +106,13 @@ export function ReLoginModalContent({
 				disabled: isUserLoading,
 				className: 'w-full',
 				onClick: async () => {
+					setIsUserLoading(true);
+					try {
+						await onReconnect?.();
+					} finally {
+						setIsUserLoading(false);
+					}
 					closeModal();
-					onReconnect();
 				}
 			}}
 		/>
