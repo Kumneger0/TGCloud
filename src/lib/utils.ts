@@ -388,6 +388,7 @@ export const downloadVideoThumbnail = async (
 	client: TelegramClient,
 	media: Message['media']
 ) => {
+	if (!('document' in media) || !media.document) return;
 	const thumbs = media.document.thumbs;
 	if (!thumbs || thumbs.length === 0) return;
 
