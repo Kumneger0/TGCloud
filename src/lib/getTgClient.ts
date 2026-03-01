@@ -105,7 +105,7 @@ export async function getTgClient(options: GetTgClientOptions) {
 
 		return client;
 	} catch (error) {
-		const message = `(${error instanceof Error ? error.message : "FAILED_TO_GET_TG_CLIENT"})_${botToken}_${options.authType}`
+		const message = `(${error instanceof Error ? error.message : 'FAILED_TO_GET_TG_CLIENT'})_${options.authType}`
 		throw new Error(message)
 	}
 }
