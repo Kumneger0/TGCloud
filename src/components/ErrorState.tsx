@@ -72,8 +72,11 @@ export function ErrorState({
 							className={`w-full ${actionButton.className || ''}`}
 							onClick={async () => {
 								setLoading(true);
-								await actionButton.onClick();
-								setLoading(false);
+								try {
+									await actionButton.onClick();
+								} finally {
+									setLoading(false);
+								}
 							}}
 							disabled={actionButton.disabled || loading}
 						>
