@@ -161,9 +161,10 @@ export function SyncFromTelegramModal({
 								fileName = `photo-${id}.jpg`;
 							}
 
-							const url = !user?.hasPublicTgChannel
-								? `https://t.me/c/${user?.channelId}/${id}`
-								: `https://t.me/${user?.channelUsername}/${id}`;
+							const privateChannelId = String(user.channelId ?? '').replace('-100', '');
+							const url = user.hasPublicTgChannel && user.channelUsername
+								? `https://t.me/${user.channelUsername}/${id}`
+								: `https://t.me/c/${privateChannelId}/${id}`;
 
 							const dateStr = m.date
 								? new Date(Number(m.date) * 1000).toDateString()
