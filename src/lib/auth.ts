@@ -15,6 +15,15 @@ export const auth = betterAuth({
 			...schema
 		}
 	}),
+	advanced: {
+		ipAddress: {
+			ipAddressHeaders: ["x-vercel-forwarded-for", "x-forwarded-for"],
+		},
+	},
+
+	experimental: {
+		joins: true,
+	},
 
 	account: {
 		accountLinking: {
@@ -29,7 +38,7 @@ export const auth = betterAuth({
 		github: {
 			clientId: env.NEXT_PUBLIC_GITHUB_CLIENT_ID || '',
 			clientSecret: env.GITHUB_CLIENT_SECRET || ''
-		}, 
+		},
 	},
 	plugins: [nextCookies(), dash()]
 });
