@@ -906,8 +906,15 @@ const VideoMediaView = React.memo(
 						}
 					}
 				});
-
 			}
+
+			return () => {
+				if (playerRef.current) {
+					playerRef.current.destroy();
+					playerRef.current = undefined;
+					setVideoRef({ current: null });
+				}
+			};
 		}, [fileData.id]);
 
 		return (
