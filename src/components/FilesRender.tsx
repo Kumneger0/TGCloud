@@ -240,20 +240,7 @@ function Files({
 		}
 	}
 
-	if (!user) {
-		return (
-			<div className="flex items-center justify-center h-full">
-				<div className="text-center space-y-4 max-w-2xl px-4">
-					<h2 className="text-2xl font-bold">Something went wrong</h2>
-					<p className="text-muted-foreground">
-						Please try again later
-					</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (isSwitchingFolder || ((user?.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user?.authType == "user" && isPending))) {
+	if (!user || isSwitchingFolder || ((user?.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user?.authType == "user" && isPending))) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
