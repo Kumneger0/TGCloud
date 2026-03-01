@@ -51,7 +51,7 @@ export const usersRelations = relations(usersTable, ({ many }) => ({
 
 export const botTokens = pgTable('botTokens', {
 	id: text('id').primaryKey(),
-	token: text('token').notNull().default(env.NEXT_PUBLIC_BOT_TOKEN),
+	token: text('token'),
 	userId: text('userId')
 		.notNull()
 		.references(() => usersTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),

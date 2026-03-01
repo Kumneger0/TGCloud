@@ -3,9 +3,10 @@ import { ProgressProvider } from '@bprogress/next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { env } from '../env';
-import { FileItem } from './types';
+import { FileItem, User } from './types';
+import { useGlobalStore } from '@/store/global-store';
 
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -20,7 +21,12 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
 
 const queryClient = new QueryClient()
 
-const Providers = ({ children }: { children: React.ReactNode }) => {
+
+const Providers = ({ children, user }: { children: React.ReactNode, user: User | null }) => {
+	const setUser = useGlobalStore((s) => s.setUser);
+	useEffect(() => {
+		setUser(user);
+	}, [user]);
 	return (
 		<>
 			<QueryClientProvider client={queryClient}>

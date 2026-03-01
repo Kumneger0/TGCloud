@@ -20,7 +20,6 @@ type GetTgClientBotTypeArgs = {
 
 const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 	user: Awaited<ReturnType<typeof getUser>>,
-	shouldFilterDefaultBotToken: boolean
 ) => {
 	const allTokens = user?.botTokens ?? [];
 
@@ -35,7 +34,7 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 			token: string;
 			id: string;
 		}[]
-	).filter(({ token }) => shouldFilterDefaultBotToken ? token !== env.NEXT_PUBLIC_BOT_TOKEN : true).sort((a, b) => {
+	).sort((a, b) => {
 		const remainingA = a.rateLimitedUntil?.getTime() / 1000 - now;
 		const remainingB = b.rateLimitedUntil?.getTime() / 1000 - now;
 		return remainingA - remainingB;
@@ -53,6 +52,8 @@ export async function getTgClient(options: GetTgClientOptions) {
 		return
 	}
 
+	let botToken: string | undefined;
+
 	try {
 		localStorage.removeItem('GramJs:apiCache');
 		const client = new TelegramClient(
@@ -66,9 +67,12 @@ export async function getTgClient(options: GetTgClientOptions) {
 			return client;
 		}
 
-		const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user, !!options.shouldFilterDefaultBotToken);
-		const token = options.botToken ?? userBotToken ?? env.NEXT_PUBLIC_BOT_TOKEN;
-
+		const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user);
+		const token = options.botToken ?? userBotToken;
+		if (!token) {
+			throw new Error('no bot token found');
+		}
+		botToken = token;
 		try {
 			await Promise.race([
 				client.start({
@@ -101,7 +105,7 @@ export async function getTgClient(options: GetTgClientOptions) {
 
 		return client;
 	} catch (error) {
-		console.error('Error initializing Telegram   client:', error);
-		return undefined;
+		const message = `(${error instanceof Error ? error.message : "FAILED_TO_GET_TG_CLIENT"})_${botToken}_${options.authType}`
+		throw new Error(message)
 	}
 }

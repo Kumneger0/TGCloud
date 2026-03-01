@@ -217,7 +217,7 @@ export function SyncFromTelegramModal({
 				setState(prev => ({ ...prev, hasMoreTelegram: false }));
 			}
 		} catch (err) {
-			handleError(err, { authType: 'user', onReconnect: () => window.location.reload() });
+			handleError(err, { onReconnect: () => window.location.reload() });
 		} finally {
 			setState(prev => ({ ...prev, isScanning: false }));
 		}
@@ -537,7 +537,7 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 				return getFilePlaceholder({ category: c.category, mimeType: c.mimeType })
 			} catch (err) {
 				console.error(err)
-				handleError(err, { authType: user.authType, onReconnect: () => window.location.reload() })
+				handleError(err, { onReconnect: () => window.location.reload() })
 				return getFilePlaceholder({ category: c.category, mimeType: c.mimeType })
 			}
 		},

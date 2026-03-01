@@ -39,7 +39,6 @@ export default async function Home(props: { searchParams: Promise<Record<string,
 			<Suspense fallback={<LoadingItems />}>
 				<Files
 					files={files}
-					user={{ ...user, telegramSession: stringSession || undefined, plan: user.plan }}
 					currentFolderId={currentFolderId}
 				/>
 			</Suspense>

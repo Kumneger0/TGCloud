@@ -1,7 +1,6 @@
 import { getUser } from '@/actions';
 import ConnectTelegram from '@/components/connectTelegram';
 import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
-import { User } from '@/lib/types';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
