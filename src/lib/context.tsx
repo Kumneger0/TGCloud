@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { env } from '../env';
 import { FileItem, User } from './types';
 import { useGlobalStore } from '@/store/global-store';
+import { getUser, getUserTelegramSession } from '@/actions';
 
 if (typeof window !== 'undefined') {
 	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
@@ -22,15 +23,21 @@ export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
 const queryClient = new QueryClient()
 
 
-const Providers = ({ children, user }: { children: React.ReactNode, user: User | null }) => {
+const Providers = ({ children }: { children: React.ReactNode }) => {
 	const setUser = useGlobalStore((s) => s.setUser);
 	useEffect(() => {
-		setUser(user);
-	}, [user]);
+		(async () => {
+			const [user, stringSession] = await Promise.all([getUser(), getUserTelegramSession()])
+			if (!user) {
+				return;
+			}
+			setUser({ ...user, telegramSession: stringSession });
+		})();
+	}, []);
 	return (
 		<>
 			<QueryClientProvider client={queryClient}>
-				<ProgressProvider height="4px" color="#f00" options={{ showSpinner: false }} shallowRouting>
+				<ProgressProvider height="4px" color="rgba(85, 61, 61, 1)" options={{ showSpinner: false }} shallowRouting>
 					{children}
 				</ProgressProvider>
 			</QueryClientProvider>
