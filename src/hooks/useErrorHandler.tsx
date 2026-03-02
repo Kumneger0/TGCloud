@@ -3,13 +3,13 @@ import {
 	BotTokenExpiredModalContent,
 	ChannelAccessDeniedModalContent,
 	ConnectionErrorModalContent,
+	MissingBotTokenModalContent,
 	ReLoginModalContent
 } from '@/components/fileConnectionErrorModals';
 import { telegramErrorMessagesThatNeedReLogin } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
 import { useGlobalStore } from '@/store/global-store';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 import { toast } from 'sonner';
 
 
@@ -76,7 +76,7 @@ export function useErrorHandler() {
 				forceDialog: true,
 				content: <ConnectionErrorModalContent message={message} />
 			});
-			return "We encountered an issue while connecting to Telegram servers. This is usually temporary, try refreshing the page."
+			return "Connection error. Please try again."
 		}
 
 		if (message.includes('ACCESS_TOKEN_EXPIRED')) {
@@ -85,7 +85,16 @@ export function useErrorHandler() {
 				forceDialog: true,
 				content: <BotTokenExpiredModalContent />
 			});
-			return "We encountered an issue while connecting to Telegram servers. This is usually temporary, try refreshing the page."
+			return "Bot Token expired. Please add new bot token."
+		}
+
+		if (message.includes('MISSING_BOT_TOKEN')) {
+			closeModal(true)
+			openModal({
+				forceDialog: true,
+				content: <MissingBotTokenModalContent />
+			});
+			return "Missing bot token. Please add bot token."
 		}
 
 		console.error("error", err)
