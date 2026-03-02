@@ -1,17 +1,14 @@
+import GlobalAudioPlayer from '@/components/GlobalAudioPlayer';
+import { GlobalModal } from '@/components/GlobalModal';
+import MiniAudioPlayer from '@/components/MiniAudioPlayer';
+import RecentUpdate from '@/components/RecentUpdate';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from "@/components/ui/sonner";
+import Providers, { CSPostHogProvider } from '@/lib/context';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../../patch-global-alert-polyfill';
 import './globals.css';
-import { Toaster } from "@/components/ui/sonner"
-import GlobalAudioPlayer from '@/components/GlobalAudioPlayer';
-import MiniAudioPlayer from '@/components/MiniAudioPlayer';
-import RecentUpdate from '@/components/RecentUpdate';
-import { ThemeProvider } from '@/components/theme-provider';
-import Providers, { CSPostHogProvider } from '@/lib/context';
-import { GlobalModal } from '@/components/GlobalModal';
-import { getUser } from '@/actions';
-import { USER_TELEGRAM_SESSION_COOKIE_NAME } from '@/lib/consts';
-import { cookies } from 'next/headers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -52,9 +49,6 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const user = await getUser();
-	const cookieStore = await cookies();
-	const stringSession = cookieStore.get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value;
 
 	return (
 		<html lang="en">
@@ -64,7 +58,7 @@ export default async function RootLayout({
 
 			<CSPostHogProvider>
 				<body className={inter.className}>
-					<Providers user={user ? { ...user, telegramSession: stringSession } : null}>
+					<Providers>
 						<ThemeProvider
 							attribute="class"
 							defaultTheme="system"

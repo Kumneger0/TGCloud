@@ -57,12 +57,37 @@ export const generateMetadata = async ({ params }: ChangelogDetailPageProps): Pr
 
 export async function generateStaticParams() {
 	const changelogDir = path.join(process.cwd(), 'src/app/(---)/changelog');
-	const changelogFiles = fs
-		.readdirSync(changelogDir)
-		.filter((file) => file.endsWith('.mdx'))
-		.map((fname) => fname.replace('.mdx', ''))
-		.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-	return changelogFiles.map((file) => ({ 'change-log': file }));
+	let logs: { date: string; title: string }[] = [];
+
+	try {
+		const files = fs
+			.readdirSync(changelogDir)
+			.filter((file) => file.endsWith('.mdx'))
+			.sort((a, b) => b.localeCompare(a));
+
+		logs = files.map((file) => {
+			const date = file.replace('.mdx', '');
+			const filePath = path.join(changelogDir, file);
+			let title = date;
+			try {
+				const content = fs.readFileSync(filePath, 'utf-8');
+				const firstLine = content.split('\n')[0];
+				if (firstLine.startsWith('# ')) {
+					title = firstLine
+						.replace('# ', '')
+						.replace(/Changelog\s*[–-]\s*/i, '')
+						.trim();
+				}
+			} catch (err) {
+				console.error(`Failed to read changelog file ${filePath}:`, err);
+			}
+			return { date, title };
+		});
+	} catch (e) {
+		logs = [];
+	}
+
+	return logs.map((log) => ({ 'change-log': log.date }));
 }
 
 export default async function ChangelogDetailPage({ params }: ChangelogDetailPageProps) {

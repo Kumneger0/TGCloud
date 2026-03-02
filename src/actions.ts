@@ -1,6 +1,6 @@
 'use server';
 import { auth } from '@/lib/auth';
-import { and, asc, count, desc, eq, ilike, inArray, isNull } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, inArray, isNull } from 'drizzle-orm';
 import { revalidatePath, revalidateTag } from 'next/cache';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -382,6 +382,13 @@ export async function getUser() {
 		return null
 	}
 }
+
+export async function getUserTelegramSession() {
+	const cookieStore = await cookies();
+	const stringSession = cookieStore.get(USER_TELEGRAM_SESSION_COOKIE_NAME)?.value;
+	return stringSession;
+}
+
 
 export async function getAllFiles(searchItem?: string, offset?: number, folderId?: string | null) {
 	try {
