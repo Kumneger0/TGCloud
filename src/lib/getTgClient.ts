@@ -70,7 +70,7 @@ export async function getTgClient(options: GetTgClientOptions) {
 		const userBotToken = await getBotTokenWithLeastAmountOfRemaingRateLimit(user);
 		const token = options.botToken ?? userBotToken;
 		if (!token) {
-			throw new Error('no bot token found');
+			throw new Error('MISSING_BOT_TOKEN');
 		}
 		botToken = token;
 		try {

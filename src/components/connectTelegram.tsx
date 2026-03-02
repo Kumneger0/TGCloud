@@ -213,7 +213,7 @@ export default function Component({ user }: Props) {
 						value={activeTab}
 						onValueChange={(val) => setActiveTab(val as 'bot' | 'user')}
 					>
-						<TabsList className="grid w-full grid-cols-2 mb-8 bg-muted">
+						<TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 h-auto mb-8 bg-muted">
 							<TabsTrigger value="user" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">User Account Connection (Recommended)</TabsTrigger>
 							<TabsTrigger value="bot" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">Bot Connection</TabsTrigger>
 						</TabsList>
