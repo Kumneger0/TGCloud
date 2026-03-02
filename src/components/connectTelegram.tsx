@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import posthog from 'posthog-js';
 import { useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import Swal from 'sweetalert2';
 import { Api } from 'telegram';
 import { EntityLike } from 'telegram/define';
 import { RPCError } from 'telegram/errors';
@@ -126,12 +125,7 @@ export default function Component({ user }: Props) {
 			const channelDetails = await createTelegramChannel(clientInstance);
 
 			if (channelDetails) {
-				Swal.fire({
-					title: 'Channel created',
-					text: 'We have created a channel in Telegram for you',
-					timer: 3000,
-					icon: 'success'
-				});
+				toast.success('Channel created');
 
 				const { accessHash, channelTitle, id } = channelDetails;
 				const result = await saveTelegramCredentials({
@@ -183,19 +177,9 @@ export default function Component({ user }: Props) {
 			if (err instanceof RPCError) {
 				const text = errors.createChannel[err.errorMessage as keyof typeof errors.createChannel];
 
-				Swal.fire({
-					title: err.message,
-					text: text ?? 'There was an error creating the channel',
-					timer: 3000,
-					icon: 'error'
-				});
+				toast.error(text ?? 'There was an error creating the channel');
 			} else {
-				Swal.fire({
-					title: 'Failed to create channel',
-					text: (err instanceof Error ? err.message : null) ?? 'There was an error',
-					timer: 3000,
-					icon: 'error'
-				});
+				toast.error((err instanceof Error ? err.message : null) ?? 'There was an error');
 			}
 		}
 	}
