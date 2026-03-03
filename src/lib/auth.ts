@@ -20,11 +20,6 @@ export const auth = betterAuth({
 			ipAddressHeaders: ["x-vercel-forwarded-for", "x-forwarded-for"],
 		},
 	},
-
-	experimental: {
-		joins: true,
-	},
-
 	account: {
 		accountLinking: {
 			trustedProviders: ['google', 'github']
