@@ -278,8 +278,7 @@ export async function saveTelegramCredentials(options: SaveTelegramCredentialsAr
 			.execute();
 		if (existingChannel.length > 0) {
 			return {
-				success: false,
-				message: 'Channel already exists',
+				success: true,
 				data: {
 					...user,
 					telegramSession: options.authType === 'user' ? options.session : undefined,

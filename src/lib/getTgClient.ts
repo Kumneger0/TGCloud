@@ -15,7 +15,6 @@ type GetTgClientBotTypeArgs = {
 	authType: 'bot';
 	botToken?: string;
 	setBotRateLimit: (botRateLimit: { isRateLimited: boolean; retryAfter: number }) => void;
-	shouldFilterDefaultBotToken?: boolean;
 };
 
 const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
@@ -23,13 +22,13 @@ const getBotTokenWithLeastAmountOfRemaingRateLimit = async (
 ) => {
 	const allTokens = user?.botTokens ?? [];
 
-	const isThereAnyBotWithoutRateLimit = allTokens.some((token) => !token.rateLimitedUntil);
+	const isThereAnyBotWithoutRateLimit = allTokens.some(({ rateLimitedUntil, token }) => token && !rateLimitedUntil);
 	if (isThereAnyBotWithoutRateLimit) {
-		return allTokens.find((token) => !token.rateLimitedUntil)?.token;
+		return allTokens.find(({ rateLimitedUntil, token }) => token && !rateLimitedUntil)?.token;
 	}
 	const now = new Date().getTime() / 1000;
 	const tokenWithLeastAmountOfRemainingRateLimit = (
-		allTokens.filter((token) => token.rateLimitedUntil) as unknown as {
+		allTokens.filter(({ rateLimitedUntil, token }) => token && rateLimitedUntil) as unknown as {
 			rateLimitedUntil: Date;
 			token: string;
 			id: string;
@@ -80,10 +79,9 @@ export async function getTgClient(options: GetTgClientOptions) {
 				}),
 				new Promise((resolve, reject) => setTimeout(() => reject(new Error('connection timeout')), 15000))
 			]);
-		} catch (startError: unknown) {
-			console.error('startError', startError);
-			const error = startError as { message?: string };
-			if (error?.message?.includes('A wait of')) {
+		} catch (error: unknown) {
+			console.error('startError', error);
+			if (error instanceof Error && error.message.includes('A wait of')) {
 				const waitTimeMatch = error.message.match(/(\d+)\sseconds/);
 				if (waitTimeMatch) {
 					const waitTime = parseInt(waitTimeMatch[1]);
@@ -98,9 +96,9 @@ export async function getTgClient(options: GetTgClientOptions) {
 						await updateTokenRateLimit(tokenId, timeInMilliseconds);
 					}
 				}
-			} else {
-				throw startError;
+
 			}
+			throw error;
 		}
 
 		return client;
