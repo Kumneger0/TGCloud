@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
+import { useErrorHandler } from '@/hooks/useErrorHandler';
 
 interface ModeSwitcherProps {
     authType: 'bot' | 'user';
@@ -32,6 +33,7 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
     const [isOpen, setIsOpen] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [botToken, setBotToken] = useState('');
+    const { handleError } = useErrorHandler()
     const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
     const targetMode = authType === 'bot' ? 'user' : 'bot';
     const requiresBotToken = !hasBotTokens && targetMode === 'bot'
@@ -56,7 +58,6 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
                         authType: 'bot',
                         botToken: !hasBotTokens ? botToken : undefined,
                         setBotRateLimit,
-                        shouldFilterDefaultBotToken: !hasBotTokens
                     }
             );
 
@@ -114,13 +115,8 @@ export function ModeSwitcher({ authType, hasBotTokens, telegramSession, user }: 
             }
         } catch (error) {
             console.error('Mode switch verification failed:', error);
-            const errorMessage = error instanceof Error ? error?.message : '';
-
-            if (errorMessage.includes('CHAT_WRITE_FORBIDDEN') || errorMessage.includes('CHAT_ADMIN_REQUIRED')) {
-                toast.error(`Verification failed: ${targetMode === 'bot' ? 'Bot' : 'Account'} is not an admin in the channel.`);
-            } else {
-                toast.error(`Verification failed: Could not access channel in ${targetMode} mode.`);
-            }
+            const userFriendlyErrorMessage = handleError(error)
+            userFriendlyErrorMessage && toast.message(userFriendlyErrorMessage)
         } finally {
             setIsVerifying(false);
         }

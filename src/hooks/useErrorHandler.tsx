@@ -4,7 +4,8 @@ import {
 	ChannelAccessDeniedModalContent,
 	ConnectionErrorModalContent,
 	MissingBotTokenModalContent,
-	ReLoginModalContent
+	ReLoginModalContent,
+	RateLimitModalContent
 } from '@/components/fileConnectionErrorModals';
 import { telegramErrorMessagesThatNeedReLogin } from '@/lib/utils';
 import { useGlobalModal } from '@/store/global-modal';
@@ -95,6 +96,20 @@ export function useErrorHandler() {
 				content: <MissingBotTokenModalContent />
 			});
 			return "Missing bot token. Please add bot token."
+		}
+
+		if (message.includes('A wait of')) {
+			const waitTimeMatch = message.match(/(\d+)\sseconds/);
+			if (waitTimeMatch) {
+				const waitTime = parseInt(waitTimeMatch[1]);
+
+				closeModal(true);
+				openModal({
+					forceDialog: true,
+					content: <RateLimitModalContent waitTimeInSeconds={waitTime} />
+				});
+				return `Rate limit exceeded. Please wait ${waitTime} seconds.`;
+			}
 		}
 
 		console.error("error", err)

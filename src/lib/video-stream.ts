@@ -323,7 +323,7 @@ const streamMP4 = async (
 			}
 
 			const initSegs = mp4boxfile.initializeSegmentation();
-			initSegs.forEach((seg: any) => {
+			initSegs.forEach((seg) => {
 				queue.push({ id: seg.id, buffer: seg.buffer });
 			});
 
@@ -383,7 +383,7 @@ const streamMP4 = async (
 										chunk.byteOffset,
 										chunk.byteOffset + chunk.byteLength
 									)
-									: new Uint8Array(chunk as any).buffer;
+									: new Uint8Array(chunk).buffer;
 
 						const mp4Buffer = arrayBuffer as ArrayBuffer & {
 							fileStart: number;

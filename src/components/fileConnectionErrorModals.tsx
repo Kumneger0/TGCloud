@@ -164,6 +164,31 @@ export function BotTokenExpiredModalContent() {
 	);
 }
 
+export function RateLimitModalContent({ waitTimeInSeconds }: { waitTimeInSeconds: number }) {
+	const closeModal = useGlobalModal((state) => state.closeModal);
+
+	let timeDisplay = `${waitTimeInSeconds} seconds`;
+	if (waitTimeInSeconds >= 60) {
+		const minutes = Math.floor(waitTimeInSeconds / 60);
+		const seconds = waitTimeInSeconds % 60;
+		timeDisplay = `${minutes}m ${seconds > 0 ? `${seconds}s` : ''}`.trim();
+	}
+
+	return (
+		<ErrorState
+			title="Rate Limit Exceeded"
+			description={`Telegram enforces strict rate limits. Please wait for ${timeDisplay} before trying again.`}
+			warning="Sending too many requests in a short period triggers a temporary cooldown. Please wait it out."
+			actionButton={{
+				label: 'Okay',
+				onClick: async () => {
+					closeModal();
+				}
+			}}
+		/>
+	);
+}
+
 export function MissingBotTokenModalContent() {
 	const user = useGlobalStore((s) => s.user);
 	const setBotRateLimit = useGlobalStore((state) => state.setBotRateLimit);
