@@ -18,6 +18,7 @@
 		"typecheck": "tsc --project tsconfig.json"
 	},
 	"dependencies": {
+		"@better-auth/drizzle-adapter": "^1.5.3",
 		"@better-auth/infra": "^0.1.8",
 		"@bprogress/next": "^3.2.12",
 		"@next/env": "16.1.6",
@@ -91,7 +92,6 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
-			"@prisma/engines",
 			"@sentry/cli",
 			"bufferutil",
 			"core-js",
@@ -101,9 +101,6 @@
 			"sharp",
 			"unrs-resolver",
 			"utf-8-validate"
-		],
-		"ignoredBuiltDependencies": [
-			"prisma"
 		]
 	}
 }
