@@ -43,10 +43,10 @@
 		"@sentry/nextjs": "^8.55.0",
 		"@t3-oss/env-nextjs": "^0.10.1",
 		"@tanstack/react-query": "^5.90.21",
-		"@types/pg": "^8.16.0",
+		"@types/pg": "^8.18.0",
 		"@uidotdev/usehooks": "^2.4.1",
 		"async-mutex": "^0.5.0",
-		"better-auth": "^1.5.2",
+		"better-auth": "^1.5.3",
 		"big-integer": "^1.6.52",
 		"class-variance-authority": "^0.7.1",
 		"clsx": "^2.1.1",
@@ -54,18 +54,18 @@
 		"dexie": "^4.3.0",
 		"dotenv-cli": "^7.4.4",
 		"drizzle-orm": "^0.45.1",
-		"fluid-player": "^3.57.0",
+		"fluid-player": "^3.58.0",
 		"lucide-react": "^0.402.0",
 		"markdown-to-jsx": "^7.7.17",
-		"mp4box": "^0.5.3",
+		"mp4box": "^0.5.4",
 		"next": "16.1.6",
 		"next-nprogress-bar": "^2.4.7",
 		"next-themes": "^0.3.0",
-		"pg": "^8.18.0",
-		"posthog-js": "^1.342.1",
+		"pg": "^8.19.0",
+		"posthog-js": "^1.358.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
-		"react-dropzone": "^14.4.0",
+		"react-dropzone": "^14.4.1",
 		"resend": "^3.5.0",
 		"sonner": "^2.0.7",
 		"tailwind-merge": "^2.6.1",
@@ -78,11 +78,11 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/typography": "^0.5.19",
-		"@types/node": "^20.19.33",
+		"@types/node": "^20.19.35",
 		"@types/react": "19.1.8",
 		"@types/react-dom": "19.1.6",
 		"cross-env": "^7.0.3",
-		"drizzle-kit": "^0.31.8",
+		"drizzle-kit": "^0.31.9",
 		"eslint": "^8.57.1",
 		"eslint-config-next": "16.1.6",
 		"prettier": "^3.8.1",
@@ -91,6 +91,7 @@
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
+			"@prisma/engines",
 			"@sentry/cli",
 			"bufferutil",
 			"core-js",
@@ -100,6 +101,9 @@
 			"sharp",
 			"unrs-resolver",
 			"utf-8-validate"
+		],
+		"ignoredBuiltDependencies": [
+			"prisma"
 		]
 	}
 }
