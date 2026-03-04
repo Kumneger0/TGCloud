@@ -81,7 +81,7 @@
 		"@types/node": "^20.19.35",
 		"@types/react": "19.1.8",
 		"@types/react-dom": "19.1.6",
-		"cross-env": "^7.0.3",
+		"cross-env": "^10.1.0",
 		"drizzle-kit": "^0.31.9",
 		"eslint": "^8.57.1",
 		"eslint-config-next": "16.1.6",
