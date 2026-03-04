@@ -129,8 +129,8 @@ importers:
         specifier: ^9.7.6
         version: 9.7.6(react@19.1.0)
       mp4box:
-        specifier: ^0.5.4
-        version: 0.5.4
+        specifier: ^2.3.0
+        version: 2.3.0
       next:
         specifier: 16.1.6
         version: 16.1.6(@babel/core@7.29.0)(@opentelemetry/api@1.9.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -4236,8 +4236,9 @@ packages:
       socks:
         optional: true
 
-  mp4box@0.5.4:
-    resolution: {integrity: sha512-GcCH0fySxBurJtvr0dfhz0IxHZjc1RP+F+I8xw+LIwkU1a+7HJx8NCDiww1I5u4Hz6g4eR1JlGADEGJ9r4lSfA==}
+  mp4box@2.3.0:
+    resolution: {integrity: sha512-nnABYbdh4UguEYyV+uRwQBi1tbb8kXka2Fx9yKzmDKAeh8gkvRKYxoK1XDd8GQIjSfN4rvsXrW1CBo4yRQJZDA==}
+    engines: {node: '>=20.8.1'}
 
   ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -9628,7 +9629,7 @@ snapshots:
       socks: 2.8.7
     optional: true
 
-  mp4box@0.5.4: {}
+  mp4box@2.3.0: {}
 
   ms@2.0.0: {}
 
