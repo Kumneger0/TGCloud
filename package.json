@@ -57,7 +57,7 @@
 		"drizzle-orm": "^0.45.1",
 		"fluid-player": "^3.58.0",
 		"lucide-react": "^0.402.0",
-		"markdown-to-jsx": "^9.7.6",
+		"markdown-to-jsx": "^9.7.9",
 		"mp4box": "^0.5.4",
 		"next": "16.1.6",
 		"next-nprogress-bar": "^2.4.7",
