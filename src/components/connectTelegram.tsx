@@ -41,10 +41,10 @@ const errors = {
 	}
 } as const;
 
-
-
 interface Props {
-	user: NonNullable<Awaited<ReturnType<typeof db.query.usersTable.findFirst>>> & { telegramSession: string | null };
+	user: NonNullable<Awaited<ReturnType<typeof db.query.usersTable.findFirst>>> & {
+		telegramSession: string | null;
+	};
 }
 
 export default function Component({ user }: Props) {
@@ -91,26 +91,29 @@ export default function Component({ user }: Props) {
 
 			if (user.channelId && user.accessHash) {
 				try {
-
 					const channelId = user.channelId.startsWith('-100')
 						? user.channelId
 						: `-100${user.channelId}`;
 					const entity = await clientInstance.getInputEntity(channelId);
-					const testMessage = 'This is test to message to verify that we can still access this channel'
+					const testMessage =
+						'This is test to message to verify that we can still access this channel';
 					const result = await clientInstance.sendMessage(entity, {
-						message: testMessage,
+						message: testMessage
 					});
 
 					if (result.id) {
-						clientInstance.deleteMessages(entity, [result.id], { revoke: true }).catch((err) => { console.error(err) });
+						clientInstance.deleteMessages(entity, [result.id], { revoke: true }).catch((err) => {
+							console.error(err);
+						});
 						const saveResult = await saveTelegramCredentials({
 							session: tgUserSession,
 							accessHash: user.accessHash,
 							channelId: user.channelId,
-							channelTitle: user.channelTitle || user.name + "Drive",
+							channelTitle: user.channelTitle || user.name + 'Drive',
 							authType: 'user'
 						});
-						saveResult.message && toast[saveResult.success ? 'success' : 'error'](saveResult.message);
+						saveResult.message &&
+							toast[saveResult.success ? 'success' : 'error'](saveResult.message);
 						if (saveResult.success) {
 							posthog.capture('userTelegramAccountConnect', { userId: user.id });
 							router.push('/files');
@@ -118,7 +121,7 @@ export default function Component({ user }: Props) {
 						return;
 					}
 				} catch (err) {
-					console.error(err)
+					console.error(err);
 				}
 			}
 
@@ -136,7 +139,11 @@ export default function Component({ user }: Props) {
 					authType: 'user'
 				});
 
-				toast[result.success ? "success" : "error"](result.message);
+				if (result.success) {
+					posthog.capture('userTelegramAccountConnect', { userId: user.id });
+				}
+
+				toast[result.success ? 'success' : 'error'](result.message);
 				window.location.href = '/files';
 			}
 		} catch (err) {
@@ -162,9 +169,8 @@ export default function Component({ user }: Props) {
 
 			const result = res as Result;
 
-			const chat = Array.isArray(result?.chats) && result.chats.length > 0
-				? result.chats[0]
-				: undefined;
+			const chat =
+				Array.isArray(result?.chats) && result.chats.length > 0 ? result.chats[0] : undefined;
 
 			if (chat?.id && chat?.accessHash) {
 				return {
@@ -189,7 +195,9 @@ export default function Component({ user }: Props) {
 			<Card className="w-full max-w-6xl mx-auto border-border bg-card text-card-foreground shadow-sm">
 				<CardHeader>
 					<CardTitle className="text-2xl">Connect Telegram</CardTitle>
-					<CardDescription className="text-muted-foreground">Choose how you want to connect TG Cloud to Telegram.</CardDescription>
+					<CardDescription className="text-muted-foreground">
+						Choose how you want to connect TG Cloud to Telegram.
+					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Tabs
@@ -198,16 +206,24 @@ export default function Component({ user }: Props) {
 						onValueChange={(val) => setActiveTab(val as 'bot' | 'user')}
 					>
 						<TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 h-auto mb-8 bg-muted">
-							<TabsTrigger value="user" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">User Account Connection (Recommended)</TabsTrigger>
-							<TabsTrigger value="bot" className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground">Bot Connection</TabsTrigger>
+							<TabsTrigger
+								value="user"
+								className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground"
+							>
+								User Account Connection (Recommended)
+							</TabsTrigger>
+							<TabsTrigger
+								value="bot"
+								className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm text-muted-foreground"
+							>
+								Bot Connection
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="bot" className="space-y-6">
 							<Alert className="bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-900/20 dark:border-yellow-900/30 dark:text-yellow-200">
 								<AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-								<AlertTitle>
-									Limitation Warning
-								</AlertTitle>
+								<AlertTitle>Limitation Warning</AlertTitle>
 								<AlertDescription className="text-yellow-700 dark:text-yellow-300/90">
 									Telegram bots have lower rate limits and file size restrictions compared to user
 									accounts. You might face issues with large files or frequent uploads.
@@ -244,10 +260,30 @@ export default function Component({ user }: Props) {
 
 										<div className="text-sm space-y-3 bg-muted/50 p-3 rounded-md border border-border/50 text-foreground">
 											<>
-												<p>1. Open <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-primary hover:underline">@BotFather</a></p>
-												<p>2. Send command <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs border border-border">/newbot</code></p>
-												<p>3. Follow instructions to get your <strong>Bot Token</strong></p>
-												<p>4. <strong>Important:</strong> Add your new bot to your channel as an Admin.</p>
+												<p>
+													1. Open{' '}
+													<a
+														href="https://t.me/BotFather"
+														target="_blank"
+														rel="noreferrer"
+														className="text-primary hover:underline"
+													>
+														@BotFather
+													</a>
+												</p>
+												<p>
+													2. Send command{' '}
+													<code className="bg-muted px-1.5 py-0.5 rounded font-mono text-xs border border-border">
+														/newbot
+													</code>
+												</p>
+												<p>
+													3. Follow instructions to get your <strong>Bot Token</strong>
+												</p>
+												<p>
+													4. <strong>Important:</strong> Add your new bot to your channel as an
+													Admin.
+												</p>
 											</>
 										</div>
 									</div>
@@ -264,12 +300,26 @@ export default function Component({ user }: Props) {
 											The hardest part! Follow carefully:
 										</p>
 										<ol className="text-sm space-y-2 list-decimal ml-4 text-muted-foreground">
-											<li>Forward <strong>any message</strong> from your channel to <a href="https://t.me/RawDataBot" target="_blank" rel="noreferrer" className="text-primary hover:underline">@RawDataBot</a></li>
 											<li>
-												Look for the code block in the response starting with <code className="bg-muted px-1 rounded text-foreground">&quot;forward_from_chat&quot;</code>
+												Forward <strong>any message</strong> from your channel to{' '}
+												<a
+													href="https://t.me/RawDataBot"
+													target="_blank"
+													rel="noreferrer"
+													className="text-primary hover:underline"
+												>
+													@RawDataBot
+												</a>
 											</li>
 											<li>
-												Copy the <code className="bg-muted px-1 rounded text-foreground">id</code> (starts with -100)
+												Look for the code block in the response starting with{' '}
+												<code className="bg-muted px-1 rounded text-foreground">
+													&quot;forward_from_chat&quot;
+												</code>
+											</li>
+											<li>
+												Copy the <code className="bg-muted px-1 rounded text-foreground">id</code>{' '}
+												(starts with -100)
 											</li>
 										</ol>
 
@@ -296,7 +346,9 @@ export default function Component({ user }: Props) {
 
 								<div className="flex flex-col h-full">
 									<div className="sticky top-6">
-										<h3 className="text-lg font-semibold mb-4 text-foreground">Final Step: Connect</h3>
+										<h3 className="text-lg font-semibold mb-4 text-foreground">
+											Final Step: Connect
+										</h3>
 										<form
 											action={async (formData) => {
 												const channelId = formData.get('channelId');
@@ -311,7 +363,7 @@ export default function Component({ user }: Props) {
 
 												const getTgClientArgs: Parameters<typeof getTgClient>[0] = {
 													authType: 'bot',
-													botToken: botToken as string | undefined || undefined,
+													botToken: (botToken as string | undefined) || undefined,
 													setBotRateLimit
 												};
 
@@ -333,14 +385,16 @@ export default function Component({ user }: Props) {
 													});
 													if (sentMessage?.id) {
 														if (id == null || accessHash == null) {
-															toast.error('Failed to retrieve channel ID or access hash. Please check Bot permissions.');
+															toast.error(
+																'Failed to retrieve channel ID or access hash. Please check Bot permissions.'
+															);
 															return;
 														}
 														const result = await saveTelegramCredentials({
 															channelId: String(id),
 															accessHash: String(accessHash),
 															channelTitle: '',
-															botToken: botToken as string | null || undefined,
+															botToken: (botToken as string | null) || undefined,
 															authType: 'bot'
 														});
 														if (!result.success) {
@@ -358,19 +412,25 @@ export default function Component({ user }: Props) {
 											className="space-y-4 bg-card border border-border rounded-lg p-6 shadow-sm"
 										>
 											<div className="space-y-2">
-												<Label htmlFor="channelId" className="text-foreground">Channel ID</Label>
+												<Label htmlFor="channelId" className="text-foreground">
+													Channel ID
+												</Label>
 												<Input
 													name="channelId"
 													id="channelId"
 													type="text"
-													defaultValue={user.channelId ? user.channelId.startsWith('-100') ? user.channelId : `-100${user.channelId}` : ''}
+													defaultValue={
+														user.channelId
+															? user.channelId.startsWith('-100')
+																? user.channelId
+																: `-100${user.channelId}`
+															: ''
+													}
 													placeholder="-1001234567890"
 													required
 													className="font-mono bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
 												/>
-												<p className="text-[10px] text-muted-foreground">
-													Must start with -100
-												</p>
+												<p className="text-[10px] text-muted-foreground">Must start with -100</p>
 											</div>
 
 											<div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -386,9 +446,7 @@ export default function Component({ user }: Props) {
 													className="font-mono text-sm bg-background border-input placeholder:text-muted-foreground focus-visible:ring-ring"
 													required
 												/>
-												<p className="text-[10px] text-muted-foreground">
-													From @BotFather
-												</p>
+												<p className="text-[10px] text-muted-foreground">From @BotFather</p>
 											</div>
 
 											<div className="pt-2">
@@ -401,9 +459,7 @@ export default function Component({ user }: Props) {
 						</TabsContent>
 
 						<TabsContent value="user" className="space-y-6 max-w-2xl mx-auto">
-							<Alert
-								className="border-primary/20 bg-primary/5 text-foreground"
-							>
+							<Alert className="border-primary/20 bg-primary/5 text-foreground">
 								<ShieldCheck className="h-4 w-4 text-primary" />
 								<AlertTitle className="text-lg font-bold mb-2">
 									Recommended Security Steps:
@@ -411,34 +467,35 @@ export default function Component({ user }: Props) {
 								<AlertDescription className="space-y-3 text-sm text-muted-foreground">
 									<ul className="list-disc pl-5 space-y-1">
 										<li>
-											Use a <span className="font-bold text-foreground">secondary Telegram account</span> for this
-											connection to keep your main account private.
+											Use a{' '}
+											<span className="font-bold text-foreground">secondary Telegram account</span>{' '}
+											for this connection to keep your main account private.
 										</li>
 										<li>Create the channel using your secondary account.</li>
 										<li>
-											Add your <span className="font-bold text-foreground">main account as an admin</span> to this
-											channel.
+											Add your{' '}
+											<span className="font-bold text-foreground">main account as an admin</span> to
+											this channel.
 										</li>
 										<li>
-											<span className="font-bold text-foreground">Transfer channel ownership</span> to your main
-											account.
+											<span className="font-bold text-foreground">Transfer channel ownership</span>{' '}
+											to your main account.
 										</li>
 									</ul>
 									<p className="mt-3 text-xs opacity-90 italic">
-										This setup ensures that even if your secondary account gets banned,
-										you can still access all your files through your main account.
+										This setup ensures that even if your secondary account gets banned, you can
+										still access all your files through your main account.
 									</p>
 								</AlertDescription>
 							</Alert>
 
 							<Alert className="bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-900/10 dark:border-blue-800/50 dark:text-blue-200">
 								<Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-								<AlertTitle>
-									Note on Exclusivity
-								</AlertTitle>
+								<AlertTitle>Note on Exclusivity</AlertTitle>
 								<AlertDescription className="text-blue-800 dark:text-blue-300/90">
 									You can only use one connection method at a time. If you connect via User Account,
-									you don&apos;t need to use the Bot connection, and vice versa. However, you can easily switch between User mode and Bot mode at any time later if you want.
+									you don&apos;t need to use the Bot connection, and vice versa. However, you can
+									easily switch between User mode and Bot mode at any time later if you want.
 								</AlertDescription>
 							</Alert>
 

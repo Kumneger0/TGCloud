@@ -4,7 +4,7 @@ import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
-import Providers, { CSPostHogProvider } from '@/lib/context';
+import Providers from '@/lib/context';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import '../../patch-global-alert-polyfill';
@@ -65,7 +65,7 @@ export default async function RootLayout({
 						enableColorScheme={false}
 					>
 						<RecentUpdate />
-						<CSPostHogProvider>{children}</CSPostHogProvider>
+						{children}
 						<GlobalAudioPlayer />
 						<GlobalModal />
 						<MiniAudioPlayer />

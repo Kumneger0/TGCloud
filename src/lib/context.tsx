@@ -3,24 +3,8 @@ import { getUser, getUserTelegramSession } from '@/actions';
 import { useGlobalStore } from '@/store/global-store';
 import { ProgressProvider } from '@bprogress/next/app';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import posthog from 'posthog-js';
-import { PostHogProvider } from 'posthog-js/react';
-import React, { use, useEffect } from 'react';
-import { env } from '../env';
+import React, { useEffect } from 'react';
 import { FileItem } from './types';
-
-export function CSPostHogProvider({ children }: { children: React.ReactNode }) {
-	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
-				api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
-				person_profiles: 'always',
-			});
-		}
-	}, []);
-
-	return <PostHogProvider client={posthog}>{children}</PostHogProvider>;
-}
 
 const queryClient = new QueryClient();
 
