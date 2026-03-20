@@ -517,24 +517,25 @@ function SyncCandidatePreview({ c }: { c: SyncCandidate }) {
 						return await downloadMedia({
 							user,
 							messageId: c.fileTelegramId,
-						size: 'small',
-						category: 'image'
-					}, client);
-				});
-				return result?.url;
-			}
-			if (c.category === 'video') {
-				const media = await withTelegramConnection(client, async (client) => {
-					return await getMessage({
-						client,
-						messageId: c.fileTelegramId,
-						user
-					}) as Message['media'] | undefined
-				});
-				if (media) {
-					return (await downloadVideoThumbnail(client, media))?.url
+							size: 'small',
+							category: 'image',
+							mimeType: c.mimeType
+						}, client);
+					});
+					return result?.url;
 				}
-			}
+				if (c.category === 'video') {
+					const media = await withTelegramConnection(client, async (client) => {
+						return await getMessage({
+							client,
+							messageId: c.fileTelegramId,
+							user
+						}) as Message['media'] | undefined
+					});
+					if (media) {
+						return (await downloadVideoThumbnail(client, media))?.url
+					}
+				}
 				return getFilePlaceholder({ category: c.category, mimeType: c.mimeType })
 			} catch (err) {
 				console.error(err)

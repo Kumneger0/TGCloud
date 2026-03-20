@@ -35,6 +35,7 @@ interface DownloadMediaOptions {
 	user: NonNullable<User>;
 	messageId: number | string;
 	size: MediaSize;
+	mimeType: string | undefined
 	category: MediaCategory;
 	isShare?: boolean;
 }
@@ -325,7 +326,7 @@ async function getCachedFile(cacheKey: string) {
 }
 
 export const downloadMedia = async (
-	{ user, messageId, size, category }: DownloadMediaOptions,
+	{ user, messageId, size, mimeType, category }: DownloadMediaOptions,
 	client: TelegramClient | 'CONNECTING' | null
 ): Promise<{ blob?: Blob, url?: string, notFound?: boolean } | null> => {
 	if (!user || !client || !user.channelId || !user.accessHash)
@@ -360,6 +361,7 @@ export const downloadMedia = async (
 				media,
 				size,
 				category == "image" ? (size === 'large' ? cacheKeys?.fileLgCacheKey : cacheKeys?.fileSmCacheKey) : undefined,
+				mimeType
 			);
 	} catch (err) {
 		console.error(err);
@@ -372,11 +374,12 @@ export const handleMediaDownload = async (
 	media: Message['media'] | MessageMediaPhoto,
 	size: MediaSize,
 	cacheKey?: string,
+	mimeType?: string
 ): Promise<{ blob: Blob, url: string } | null> => {
 	const buffer = await client.downloadMedia(media as unknown as Api.TypeMessageMedia, {
 		thumb: size === 'small' ? 0 : undefined
 	});
-	const blob = new Blob([buffer as BlobPart]);
+	const blob = new Blob([buffer as BlobPart], (mimeType ? { type: mimeType } : undefined));
 	if (cacheKey) {
 		fileCacheDb.fileCache.add({
 			id: Date.now(),

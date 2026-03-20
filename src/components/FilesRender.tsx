@@ -528,7 +528,8 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							user,
 							messageId: file?.fileTelegramId,
 							size: 'small',
-							category: file.category as MediaCategory
+							category: file.category as MediaCategory,
+							mimeType: file.mimeType,
 						},
 						client
 					);
@@ -584,7 +585,8 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 								user,
 								messageId: file?.fileTelegramId,
 								size: 'large',
-								category: file.category as MediaCategory
+								category: file.category as MediaCategory,
+								mimeType: file.mimeType
 							},
 							client
 						);
