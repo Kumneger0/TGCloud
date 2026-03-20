@@ -3,7 +3,7 @@ import { GlobalModal } from '@/components/GlobalModal';
 import MiniAudioPlayer from '@/components/MiniAudioPlayer';
 import RecentUpdate from '@/components/RecentUpdate';
 import { ThemeProvider } from '@/components/theme-provider';
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from '@/components/ui/sonner';
 import Providers, { CSPostHogProvider } from '@/lib/context';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
@@ -49,32 +49,30 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-
 	return (
-		<html lang="en">
+		<html lang="en" suppressHydrationWarning>
 			<head>
 				<link rel="icon" href="/favicon.ico" sizes="any" />
 			</head>
 
-			<CSPostHogProvider>
-				<body className={inter.className}>
-					<Providers>
-						<ThemeProvider
-							attribute="class"
-							defaultTheme="system"
-							enableSystem
-							disableTransitionOnChange
-						>
-							<RecentUpdate />
-							{children}
-							<GlobalAudioPlayer />
-							<GlobalModal />
-							<MiniAudioPlayer />
-						</ThemeProvider>
-					</Providers>
-					<Toaster />
-				</body>
-			</CSPostHogProvider>
+			<body className={inter.className}>
+				<Providers>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+						enableColorScheme={false}
+					>
+						<RecentUpdate />
+						<CSPostHogProvider>{children}</CSPostHogProvider>
+						<GlobalAudioPlayer />
+						<GlobalModal />
+						<MiniAudioPlayer />
+					</ThemeProvider>
+				</Providers>
+				<Toaster />
+			</body>
 		</html>
 	);
 }

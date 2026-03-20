@@ -1,11 +1,10 @@
 import fs from 'fs';
-import path from 'path';
-import { notFound } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import path from 'path';
 
-const Markdown = dynamic(() => import('markdown-to-jsx'));
+import Markdown from 'markdown-to-jsx';
 
 type ChangelogDetailPageProps = {
 	params: Promise<{ 'change-log': string }>;
