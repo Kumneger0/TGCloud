@@ -56,7 +56,7 @@ function Files({
 	currentFolderId
 }: {
 	mimeType?: string;
-		files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
+	files: NonNullable<GetAllFilesReturnType>['files'] | undefined;
 	currentFolderId: string | null;
 }) {
 	const user = useGlobalStore((state) => state.user);
@@ -98,18 +98,17 @@ function Files({
 			const getTgClientArgs: Parameters<typeof getTgClient>[0] | null =
 				user.authType === 'user' && user.telegramSession
 					? {
-						authType: 'user',
-						stringSession: user.telegramSession ?? ''
-					}
+							authType: 'user',
+							stringSession: user.telegramSession ?? ''
+						}
 					: {
-						authType: 'bot',
-						botToken: undefined,
-						setBotRateLimit
-					};
+							authType: 'bot',
+							botToken: undefined,
+							setBotRateLimit
+						};
 
 			try {
 				const telegramClient = await getTgClient(getTgClientArgs);
-				console.log('client', telegramClient)
 
 				if (telegramClient) {
 					if (!telegramClient?.connected) await telegramClient.connect();
@@ -146,8 +145,8 @@ function Files({
 						setIsUserLoading(true);
 						await connectTelegramUser();
 					}
-				})
-				setError(message ?? "Failed to connnect to telegram");
+				});
+				setError(message ?? 'Failed to connnect to telegram');
 			} finally {
 				setIsPending(false);
 			}
@@ -240,7 +239,12 @@ function Files({
 		}
 	}
 
-	if (!user || isSwitchingFolder || ((user?.authType == "bot" && !botRateLimit.isRateLimited && isPending) || (user?.authType == "user" && isPending))) {
+	if (
+		!user ||
+		isSwitchingFolder ||
+		(user?.authType == 'bot' && !botRateLimit.isRateLimited && isPending) ||
+		(user?.authType == 'user' && isPending)
+	) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
@@ -248,7 +252,11 @@ function Files({
 		);
 	}
 
-	if (error && ((user?.authType == "bot" && !botRateLimit.isRateLimited && !client) || (user?.authType == "user" && !client))) {
+	if (
+		error &&
+		((user?.authType == 'bot' && !botRateLimit.isRateLimited && !client) ||
+			(user?.authType == 'user' && !client))
+	) {
 		return (
 			<div className="flex items-center justify-center h-full">
 				<div className="text-center space-y-4">
@@ -455,7 +463,7 @@ function DeleteModalContent({
 	closeModal,
 	deleteFn
 }: {
-		closeModal: () => void;
+	closeModal: () => void;
 	deleteFn: () => Promise<void>;
 }) {
 	const [isDeleting, setIsDeleting] = useState(false);
@@ -514,13 +522,12 @@ export default Files;
 
 const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; user: User }) {
 	const client = useGlobalStore((s) => s.client);
-	if (!user) return null;
 	const [largeURL, setLargeURL] = useState<string | null>(null);
 	const { openModal, closeModal } = useGlobalModal();
 	const { data, isPending, error } = useQuery<{ notFound?: boolean; url?: string }>({
 		queryKey: ['file', file.id],
 		queryFn: async () => {
-			if (!client) return { notFound: false, url: undefined };
+			if (!client || !user) return { notFound: false, url: undefined };
 			if (file.category === 'image') {
 				return await withTelegramConnection(client, async (client) => {
 					const result = await downloadMedia(
@@ -529,7 +536,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							messageId: file?.fileTelegramId,
 							size: 'small',
 							category: file.category as MediaCategory,
-							mimeType: file.mimeType,
+							mimeType: file.mimeType
 						},
 						client
 					);
@@ -548,7 +555,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 		queryKey: ['video', file.id],
 		queryFn: async () => {
 			try {
-				if (!client) return { notFound: false, thumbnail: undefined };
+				if (!client || !user) return { notFound: false, thumbnail: undefined };
 				if (file.category == 'video') {
 					const media = (await getMessage({
 						client,
@@ -565,7 +572,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				}
 				return { thumbnail: undefined };
 			} catch (err) {
-				handleError(err, { onReconnect: () => window.location.reload() })
+				handleError(err, { onReconnect: () => window.location.reload() });
 				return { thumbnail: undefined };
 			}
 		}
@@ -577,7 +584,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 
 		const idleId = runIdle(async () => {
 			try {
-				if (!client) return;
+				if (!client || !user) return;
 				if (file.category == 'image') {
 					const largeURL = await withTelegramConnection(client, async (client) => {
 						const result = await downloadMedia(
@@ -594,17 +601,18 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					});
 					setLargeURL(largeURL?.url ?? null);
 				}
-			}
-			catch (err) {
-				handleError(err, { onReconnect: () => window.location.reload() })
+			} catch (err) {
+				handleError(err, { onReconnect: () => window.location.reload() });
 			}
 		});
 		return () => cancelIdle(idleId);
 	}, []);
 
-	const url = file.category === 'video' ? videoData?.thumbnail : largeURL ?? data?.url;
+	const url = file.category === 'video' ? videoData?.thumbnail : (largeURL ?? data?.url);
 	const notFound = data?.notFound || videoData?.notFound;
-	const { handleError } = useErrorHandler()
+	const { handleError } = useErrorHandler();
+
+	if (!user) return null;
 
 	const fileContextMenuActions = [
 		{
@@ -617,14 +625,12 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 					content: (
 						<div className="space-y-4">
 							<p className="text-sm text-muted-foreground">
-								Your files are stored in Telegram, so to save them you just need to open the
-								file in Telegram and tap <strong>Download</strong> there — it&apos;s quick
-								and easy!
+								Your files are stored in Telegram, so to save them you just need to open the file in
+								Telegram and tap <strong>Download</strong> there — it&apos;s quick and easy!
 							</p>
 							<p className="text-sm text-muted-foreground">
-								Click <strong>&quot;Open in Telegram&quot;</strong> below and Telegram will
-								open the file for you. From there, hit the download button to save it to
-								your device.
+								Click <strong>&quot;Open in Telegram&quot;</strong> below and Telegram will open the
+								file for you. From there, hit the download button to save it to your device.
 							</p>
 							<div className="flex justify-end gap-3">
 								<Button variant="outline" onClick={() => closeModal()}>
@@ -644,16 +650,19 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				});
 			},
 			Icon: CloudDownload,
-			className: 'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted'
+			className:
+				'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted'
 		},
 		{
 			actionName: 'delete',
 			onClick: async () => {
 				if (!client) return;
-				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${'small' satisfies MediaSize
-					}-${file.category}`;
-				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${'large' satisfies MediaSize
-					}-${file.category}`;
+				const cacheKeySmall = `${user?.channelId}-${file.fileTelegramId}-${
+					'small' satisfies MediaSize
+				}-${file.category}`;
+				const cacheKeyLarge = `${user?.channelId}-${file.fileTelegramId}-${
+					'large' satisfies MediaSize
+				}-${file.category}`;
 
 				try {
 					await fileCacheDb.fileCache.where('cacheKey').equals(cacheKeySmall).delete();
@@ -665,22 +674,19 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 				const promies = async () =>
 					await withTelegramConnection(client, async (client) => {
 						await Promise.all([deleteFile(file.id), deleteItem(user, file.fileTelegramId, client)]);
-					})
+					});
 
 				toast.promise(promies, {
 					loading: 'please wait',
 					success: 'you have successfully deleted the file',
 					error: 'Failed to Delete the file'
-				})
-
+				});
 			},
 			Icon: Trash2Icon,
 			className:
 				'flex items-center text-red-500 gap-2 px-4 py-2 text-sm font-medium transition-colors hover:bg-muted hover:text-red-600'
 		}
 	];
-
-
 
 	return (
 		<FileContextMenu fileContextMenuActions={fileContextMenuActions}>
@@ -720,7 +726,10 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							id={file.id}
 							queryKey={QUERY_KEYS.image(file.id)}
 							modalContent={
-								<ImagePreviewModal fileData={{ ...file, category: 'image' }} url={url || getFilePlaceholder(file) || ''} />
+								<ImagePreviewModal
+									fileData={{ ...file, category: 'image' }}
+									url={url || getFilePlaceholder(file) || ''}
+								/>
 							}
 						>
 							<ImageRender fileName={file.fileName} url={url || getFilePlaceholder(file)} />
@@ -743,7 +752,11 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							}
 						>
 							<div className="w-full h-full min-w-full flex-1 relative">
-								<ImageRender key={url} fileName={file.fileName} url={url ?? getFilePlaceholder(file) ?? ''} />
+								<ImageRender
+									key={url}
+									fileName={file.fileName}
+									url={url ?? getFilePlaceholder(file) ?? ''}
+								/>
 								<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
 									<Play className="text-black bg-white p-2 rounded-full h-14 w-14" />
 								</div>
@@ -756,10 +769,7 @@ const EachFile = React.memo(function EachFile({ file, user }: { file: FileItem; 
 							id={file.id}
 							queryKey={QUERY_KEYS.audio(file.id)}
 							modalContent={
-								<AudioMediaView
-									fileData={{ ...file, category: 'audio' }}
-									user={user}
-								/>
+								<AudioMediaView fileData={{ ...file, category: 'audio' }} user={user} />
 							}
 						>
 							<ImageRender fileName={file.fileName} url={getFilePlaceholder(file) ?? ''} />
@@ -809,19 +819,19 @@ const VideoMediaView = React.memo(
 		user,
 		queryKey
 	}: {
-			fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
+		fileData: Omit<FilesData[number], 'category'> & { category: 'video' };
 		queryKey: string;
 		user: User;
 	}) => {
 		let self = useRef<HTMLVideoElement>(null);
 		const playerRef = useRef<FluidPlayerInstance>(undefined);
-		const abortController = useGlobalStore(s => s.abortController)
-		const setAbortController = useGlobalStore(s => s.setAbortController)
-		const audioRef = useGlobalStore(s => s.audioRef)
-		const setVideoRef = useGlobalStore(s => s.setVideoRef)
+		const abortController = useGlobalStore((s) => s.abortController);
+		const setAbortController = useGlobalStore((s) => s.setAbortController);
+		const audioRef = useGlobalStore((s) => s.audioRef);
+		const setVideoRef = useGlobalStore((s) => s.setVideoRef);
 		const [error, setError] = useState<string | null>(null);
-		const { handleError } = useErrorHandler()
-		const client = useGlobalStore(s => s.client)
+		const { handleError } = useErrorHandler();
+		const client = useGlobalStore((s) => s.client);
 
 		const { data } = useQuery<{ url?: string }>({
 			queryKey: [queryKey],
@@ -842,38 +852,41 @@ const VideoMediaView = React.memo(
 						return message;
 					});
 
-					audioRef?.current?.pause()
+					audioRef?.current?.pause();
 					abortController?.abort();
-					const newAbortController = new AbortController()
-					setAbortController(newAbortController)
+					const newAbortController = new AbortController();
+					setAbortController(newAbortController);
 
 					const mediaSource = new MediaSource();
 					const url = URL.createObjectURL(mediaSource);
 
 					withTelegramConnection(client, async (client) => {
-						await streamMedia({
-							client,
-							media: message as Message['media'],
-							mimeType: fileData.mimeType,
-							mediaSource,
-							signal: newAbortController.signal
-						}, (err: unknown) => {
-							const message = err instanceof Error ? err.message : 'Failed to stream media'
-							setError(message);
-						});
+						await streamMedia(
+							{
+								client,
+								media: message as Message['media'],
+								mimeType: fileData.mimeType,
+								mediaSource,
+								signal: newAbortController.signal
+							},
+							(err: unknown) => {
+								const message = err instanceof Error ? err.message : 'Failed to stream media';
+								setError(message);
+							}
+						);
 					});
 					return { url };
 				} catch (err) {
-					handleError(err, { onReconnect: () => window.location.reload() })
+					handleError(err, { onReconnect: () => window.location.reload() });
 					setError('Failed to stream media');
-					return { url: undefined }
+					return { url: undefined };
 				}
 			}
 		});
 
 		useEffect(() => {
 			if (!playerRef.current && self.current) {
-				setVideoRef(self)
+				setVideoRef(self);
 				playerRef.current = fluidPlayer(self.current, {
 					layoutControls: {
 						allowDownload: false,
@@ -915,13 +928,27 @@ const VideoMediaView = React.memo(
 						<div>
 							{error && (
 								<div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
-									<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="48"
+										height="48"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.5"
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										className="text-red-400"
+									>
 										<circle cx="12" cy="12" r="10" />
 										<line x1="12" x2="12" y1="8" y2="12" />
 										<line x1="12" x2="12.01" y1="16" y2="16" />
 									</svg>
 									<p className="text-lg font-semibold text-white">Playback failed</p>
-									<p className="text-sm text-white/70 max-w-xs">Something went wrong while loading the video. This can happen due to a network issue or an unsupported format.</p>
+									<p className="text-sm text-white/70 max-w-xs">
+										Something went wrong while loading the video. This can happen due to a network
+										issue or an unsupported format.
+									</p>
 								</div>
 							)}
 						</div>
@@ -1006,21 +1033,21 @@ function ImagePreviewModal({
 function AudioMediaView({
 	fileData
 }: {
-		fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
+	fileData: Omit<FilesData[number], 'category'> & { category: 'audio' };
 	user: NonNullable<User>;
 }) {
 	const audioPlayer = useGlobalStore((s) => s.audioPlayer);
 	const setAudioPlayer = useGlobalStore((s) => s.setAudioPlayer);
 	const updateAudioPlayer = useGlobalStore((s) => s.updateAudioPlayer);
 
-	const closeModal = useGlobalModal(s => s.closeModal)
+	const closeModal = useGlobalModal((s) => s.closeModal);
 	const audioRef = useGlobalStore((s) => s.audioRef);
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const duration = audioPlayer?.duration;
 	const isCurrentFile = audioPlayer?.fileTelegramId === fileData.fileTelegramId;
 	const isLoading = audioPlayer?.isLoading;
-	const error = audioPlayer?.error
+	const error = audioPlayer?.error;
 
 	useEffect(() => {
 		if (!isCurrentFile) {
@@ -1077,7 +1104,7 @@ function AudioMediaView({
 		const el = audioRef?.current;
 		if (!el) return;
 		if (el.paused) {
-			el.play().catch(() => { });
+			el.play().catch(() => {});
 		} else {
 			el.pause();
 		}
@@ -1091,7 +1118,7 @@ function AudioMediaView({
 	};
 
 	const handleMinimize = () => {
-		closeModal(false)
+		closeModal(false);
 		updateAudioPlayer({ isMinimized: true });
 	};
 
@@ -1101,13 +1128,26 @@ function AudioMediaView({
 				<div className="relative aspect-square flex items-center justify-center bg-muted rounded-t-lg overflow-hidden">
 					{!!error && (
 						<div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/80 text-white text-center px-6">
-							<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-400">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="48"
+								height="48"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								strokeWidth="1.5"
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								className="text-red-400"
+							>
 								<circle cx="12" cy="12" r="10" />
 								<line x1="12" x2="12" y1="8" y2="12" />
 								<line x1="12" x2="12.01" y1="16" y2="16" />
 							</svg>
 							<p className="text-lg font-semibold text-white">Playback failed</p>
-							<p className="text-sm text-white/70 max-w-xs leading-relaxed">Failed to play audio. The file might be corrupted or in an unsupported format.</p>
+							<p className="text-sm text-white/70 max-w-xs leading-relaxed">
+								Failed to play audio. The file might be corrupted or in an unsupported format.
+							</p>
 						</div>
 					)}
 					<Image
@@ -1152,7 +1192,6 @@ function AudioMediaView({
 							</span>
 						</div>
 					</div>
-
 
 					{/* Play / Pause */}
 					<div className="flex justify-center">
